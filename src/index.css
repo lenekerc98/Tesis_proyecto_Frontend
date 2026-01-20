@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Opcional: Esto suaviza las fuentes para que se vea más profesional */
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.transition-all {
+  transition: all 0.3s ease-in-out;
+}
+
+/* En dispositivos móviles, el sidebar debería estar oculto por defecto */
+@media (max-width: 768px) {
+  .sidebar-hidden {
+    margin-left: -280px;
+  }
+}
+/* src/App.css */
+
+/* Contenedor principal para evitar scroll horizontal */
+.wrapper {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+}
+
+/* Estilo base del Sidebar */
+#sidebar {
+    min-width: 280px;
+    max-width: 280px;
+    min-height: 100vh;
+    transition: all 0.3s; /* Esto hace que se deslice suavemente */
+}
+
+/* Clase para ocultar el Sidebar */
+#sidebar.active {
+    margin-left: -280px;
+}
+
+/* Ajuste para móviles: si la pantalla es pequeña, se oculta por defecto */
+@media (max-width: 768px) {
+    #sidebar {
+        margin-left: -280px;
+    }
+    #sidebar.active {
+        margin-left: 0;
+    }
+}
+
+/* Animación para el contenido principal */
+#content {
+    width: 100%;
+    transition: all 0.3s;
+}
