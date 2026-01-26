@@ -24,19 +24,6 @@ export const Historial = () => {
     obtenerHistorial();
   }, []);
 
-  // 2. Eliminar (Usando log_id)
-  const eliminarRegistro = async (id: number) => {
-    if (!window.confirm("¿Eliminar este análisis?")) return;
-    try {
-      await axios.delete(`http://127.0.0.1:8000/v1/inferencia/eliminar/${id}`, {
-        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
-      });
-      // Filtramos usando 'log_id' que es lo que viene en tu API
-      setRegistros(registros.filter(r => r.log_id !== id));
-    } catch (e) {
-      alert("No se pudo eliminar.");
-    }
-  };
 
   // Función auxiliar para limpiar el nombre (Quitar guiones bajos)
   const formatearNombre = (nombre: string) => {
@@ -95,14 +82,6 @@ export const Historial = () => {
                       {(reg.confianza * 100).toFixed(1)}%
                     </div>
                     
-                    {/* BOTÓN ELIMINAR (Pasa reg.log_id) */}
-                    <button 
-                      className="btn btn-sm btn-outline-danger border-0 d-block w-100"
-                      onClick={() => eliminarRegistro(reg.log_id)}
-                      title="Eliminar"
-                    >
-                      <i className="bi bi-trash3"></i>
-                    </button>
                   </div>
 
                 </div>

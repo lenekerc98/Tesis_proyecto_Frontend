@@ -7,6 +7,8 @@ import { Resumen } from "./resumen_usuario";
 import { Historial } from "./historial_usuario";
 // import { Dashboard } from "./dashboard_usuario"; 
 import { Perfil } from "./perfil_usuario";
+import aveIcon from "../assets/ave.png";
+
 
 export const Analizador = () => {
   // --- ESTADO PARA NAVEGACIÓN ---
@@ -126,23 +128,22 @@ export const Analizador = () => {
   const obtenerListaResultados = () => {
     if (!resultado) return [];
     
-    // 1. Si es un ARRAY (tu API devuelve [{ top_5: ... }])
-    if (Array.isArray(resultado)) {
-        // Verificamos si el primer elemento tiene la lista 'top_5'
-        if (resultado.length > 0 && resultado[0].top_5 && Array.isArray(resultado[0].top_5)) {
-            return resultado[0].top_5;
-        }
-        // Si no, devolvemos el array tal cual
-        return resultado;
+    // Tu API devuelve un objeto con la lista bajo la clave 'predicciones'
+    if (resultado.predicciones && Array.isArray(resultado.predicciones)) {
+        return resultado.predicciones;
     }
 
-    // 2. Si es un OBJETO directo ({ top_5: ... })
-    if (resultado.top_5 && Array.isArray(resultado.top_5)) {
-        return resultado.top_5;
-    }
+    // Fallback por si la respuesta fuera un array directo
+    if (Array.isArray(resultado)) return resultado;
     
-    // Fallback
     return [resultado];
+  };
+  const iniciarNuevoAnalisis = () => {
+    setFile(null); // Limpia el archivo binario
+    setAudioUrl(null); // Borra la vista previa del reproductor
+    setResultado(null); // Borra las predicciones previas de la pantalla
+    setShowModal(false); // Cierra la ventana de resultados
+    audioChunks.current = []; // Vacía la memoria de la grabación anterior
   };
 
   return (
@@ -205,19 +206,30 @@ export const Analizador = () => {
           </div>
         </nav>
 
+
         <div className="main-content-area h-100 p-3">
             
             {/* VISTA 1: ANALIZADOR */}
+            <div className="mb-4">
+              <div className="encabezado-analizador d-flex flex-column align-items-center mb-4">
+                <h1>Lorem Ipsum</h1>
+                <p className="text-muted">Analiza grabaciones de audio para identificar aves.</p>
+
+              </div>
+            <div className=" d-flex justify-content-center">
             {vista === "analizador" && (
                 <div className="audio-center animate__animated animate__fadeIn">
-                    <button 
-                        className={`mic-button ${isRecording ? "bg-danger animate-pulse" : ""}`} 
-                        onClick={isRecording ? stopRecording : startRecording}
-                        disabled={!!audioUrl}
-                    >
-                        <i className={`bi ${isRecording ? "bi-stop-fill" : "bi-mic-fill"}`}></i>
-                    </button>
-
+                  <button 
+                  className={`mic-button ${isRecording ? "bg-danger animate-pulse" : ""}`} 
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={!!audioUrl}
+                  >
+                  <img
+                    src={aveIcon}
+                    alt="Ave grabando"
+                    className={`bird-img ${isRecording ? "singing" : ""}`}
+                  />
+                </button>
                     <p className="mic-text mt-3">
                         {isRecording ? "Grabando..." : audioUrl ? "Audio listo para procesar" : "Presiona el micrófono para grabar"}
                     </p>
@@ -245,14 +257,18 @@ export const Analizador = () => {
                                 accept="audio/*" 
                                 onChange={handleFileChange} 
                             />
-                            <button className="upload-btn" onClick={handleButtonClick}>
-                                <i className="bi bi-upload me-2"></i>
-                                Cargar archivo de audio
-                            </button>
+
                         </div>
                     )}
                 </div>
-            )}
+            )}</div>
+            </div>
+            <div className="pie-analizador mb-4 text-center">
+              <button className="upload-btn" onClick={handleButtonClick}>
+              <i className="bi bi-upload me-2"></i>
+                Cargar archivo de audio
+              </button>
+            </div>
 
             {/* OTRAS VISTAS */}
             {vista === "resumen" && <Resumen />}
@@ -262,41 +278,40 @@ export const Analizador = () => {
 
         </div>
       </div>
+      
 
       {/* MODAL DE RESULTADOS */}
       {showModal && resultado && (
         <div className="modal-overlay">
           <div className="modal-content-custom">
             <h3 className="fw-bold text-success text-center mb-4">Resultados</h3>
+            
+            {/* Lista de predicciones generada por la API */}
             <div className="results-list">
               {obtenerListaResultados().map((item: any, index: number) => {
-                const rawName = item.nombre_cientifico || item.prediccion || item.label || "Desconocido";
-                const nombreCientifico = rawName.replace(/_/g, " ");
-                const valorConfianza = item.probabilidad || item.confianza || item.score || 0;
-                const porcentaje = (valorConfianza * 100).toFixed(1);
+                const nombre = (item.nombre_cientifico || "Desconocido").replace(/_/g, " ");
+                const porcentaje = ((item.probabilidad || 0) * 100).toFixed(1);
 
                 return (
                   <div key={index} className="result-item p-3 mb-2 border rounded-4 d-flex justify-content-between align-items-center bg-light">
                     <div className="text-start">
-                      <small className="text-muted d-block mb-1" style={{fontSize: '0.75rem'}}>
-                         {index === 0 ? "Resultado Principal" : "Posible confusión"}
-                      </small>
-                      <span className="fw-bold d-block text-dark fst-italic text-capitalize" style={{fontSize: '1rem'}}>
-                        {nombreCientifico}
-                      </span>
+                      <span className="fw-bold d-block text-capitalize">{nombre}</span>
                       <div className="progress mt-2" style={{ height: "6px", width: "120px" }}>
                         <div className="progress-bar bg-success" style={{ width: `${porcentaje}%` }}></div>
                       </div>
                     </div>
-                    <span className="badge rounded-pill bg-success px-3 py-2" style={{fontSize: '0.9rem'}}>
-                      {porcentaje}%
-                    </span>
+                    <span className="badge rounded-pill bg-success px-3 py-2">{porcentaje}%</span>
                   </div>
                 );
               })}
             </div>
-            <button className="btn btn-success mt-4 w-100 rounded-pill py-2 fw-bold" onClick={() => setShowModal(false)}>
-              Nueva Captura
+
+            {/* BOTÓN ACTUALIZADO */}
+            <button 
+              className="btn btn-success mt-4 w-100 rounded-pill py-2 fw-bold" 
+              onClick={iniciarNuevoAnalisis}
+            >
+              Nuevo Análisis
             </button>
           </div>
         </div>

@@ -28,7 +28,7 @@ export const Perfil = () => {
         if (!token) return;
 
         // Petición para obtener datos del usuario logueado
-        const response = await axios.get("http://127.0.0.1:8000/v1/usuarios/me", {
+        const response = await axios.get("http://127.0.0.1:8000/v1/usuarios/", {
           headers: { "Authorization": `Bearer ${token}` }
         });
         
