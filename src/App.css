@@ -366,3 +366,44 @@ color: #C0C0BC;
     transform: scale(1);
   }
 }
+
+
+/* --- MODAL PREVIEW IMAGEN EN GRANDE (Z-INDEX FIX) --- */
+.modal-preview-overlay {
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 2000 !important; /* Prioridad máxima */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+.modal-preview-container {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.btn-close-preview {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  z-index: 2010;
+  filter: drop-shadow(0px 0px 5px rgba(0,0,0,0.5));
+  font-size: 1.5rem;
+  background-color: transparent;
+  border: none;
+  color: white; /* Fallback */
+}
+
+.img-preview-full {
+  max-height: 85vh;
+  max-width: 85vw;
+  object-fit: contain;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+}

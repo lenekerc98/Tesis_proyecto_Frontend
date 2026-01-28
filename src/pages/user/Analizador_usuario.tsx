@@ -16,7 +16,7 @@ export const Analizador = () => {
   const [vista, setVista] = useState("analizador"); 
 
   // --- ESTADOS DE LÓGICA ---
-  const [active, setActive] = useState(false); // Controla si el sidebar se ve (móvil)
+  const [active, setActive] = useState(false); 
   const [file, setFile] = useState<File | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [resultado, setResultado] = useState<any>(null);
@@ -24,9 +24,34 @@ export const Analizador = () => {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  //  GEOLOCALIZACIÓN
+  const [latitud, setLatitud] = useState<number | null>(null);
+  const [longitud, setLongitud] = useState<number | null>(null);
+  const [localizacion, setLocalizacion] = useState<string>("");
+
+  // ⭐ OBTENER GEOLOCALIZACIÓN (Sin bloquear alertas)
+  const obtenerUbicacion = () => {
+    if (!navigator.geolocation) return; // Si no soporta, simplemente no hace nada
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        setLatitud(lat);
+        setLongitud(lon);
+        setLocalizacion(`Lat: ${lat}, Lon: ${lon}`);
+      },
+      (error) => {
+        console.warn("Ubicación no obtenida:", error.message);
+        // No mostramos alert para no interrumpir al usuario
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+  };
+
   // --- LÓGICA DE INACTIVIDAD (15 MINUTOS) ---
   useEffect(() => {
-    const TIEMPO_LIMITE = 15 * 60 * 1000; // 15 minutos en milisegundos
+    const TIEMPO_LIMITE = 15 * 60 * 1000; 
     let timer: number;
 
     const resetTimer = () => {
@@ -34,15 +59,15 @@ export const Analizador = () => {
       timer = window.setTimeout(() => {
         alert("Sesión cerrada por inactividad de 15 minutos.");
         localStorage.clear();
-        window.location.href = "/"; // Redirige al inicio/login
+        window.location.href = "/"; 
       }, TIEMPO_LIMITE);
     };
 
-    // Detectar cualquier actividad del usuario
     const eventos = ['mousemove', 'keydown', 'click', 'scroll'];
     eventos.forEach(event => window.addEventListener(event, resetTimer));
 
-    resetTimer(); // Iniciar cronómetro
+    resetTimer(); 
+    obtenerUbicacion(); // Intentamos obtener ubicación al cargar, silenciosamente
 
     return () => {
       eventos.forEach(event => window.removeEventListener(event, resetTimer));
@@ -74,9 +99,12 @@ export const Analizador = () => {
     audioChunks.current = [];
   };
 
-  // --- LÓGICA DE GRABACIÓN (MP3) ---
+  // --- LÓGICA DE GRABACIÓN ---
   const startRecording = async () => {
     try {
+      // Intentamos actualizar ubicación al grabar, pero no es obligatorio
+      obtenerUbicacion();
+      
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorder.current = new MediaRecorder(stream);
       audioChunks.current = [];
@@ -112,11 +140,11 @@ export const Analizador = () => {
     if (selectedFile) {
       setFile(selectedFile);
       setAudioUrl(URL.createObjectURL(selectedFile));
+      obtenerUbicacion(); // Intentamos obtener ubicación al subir archivo
     }
   };
 
-
-  // --- ENVÍO A LA API ---
+  // --- ENVÍO A LA API (MODIFICADO PARA NO BLOQUEAR) ---
   const enviarAApi = async () => {
     let archivoParaEnviar = file;
     if (!archivoParaEnviar && audioChunks.current.length > 0) {
@@ -132,6 +160,12 @@ export const Analizador = () => {
     setLoading(true);
     const formData = new FormData();
     formData.append("file", archivoParaEnviar);
+
+    // --- MODIFICACIÓN: ENVÍO CONDICIONAL ---
+    // Si latitud/longitud existen, las envía. Si son null, envía 0 para que la API no falle.
+    formData.append("latitud", (latitud !== null ? latitud : 0).toString());
+    formData.append("longitud", (longitud !== null ? longitud : 0).toString());
+    formData.append("localizacion", localizacion || "Ubicación no disponible"); // Texto por defecto
 
     try {
       const response = await axios.post("http://127.0.0.1:8000/v1/inferencia/procesar_inferencia", formData, {
@@ -150,16 +184,13 @@ export const Analizador = () => {
     }
   };
 
-const obtenerListaResultados = () => {
-  if (!resultado) return [];
-  
-  // Según tu captura image_2ebc40.png, la lista está en 'top_5_predicciones'
-  if (resultado.top_5_predicciones && Array.isArray(resultado.top_5_predicciones)) {
-      return resultado.top_5_predicciones;
-  }
-  
-  return [];
-};
+  const obtenerListaResultados = () => {
+    if (!resultado) return [];
+    if (resultado.top_5_predicciones && Array.isArray(resultado.top_5_predicciones)) {
+        return resultado.top_5_predicciones;
+    }
+    return [];
+  };
 
   const iniciarNuevoAnalisis = () => {
     setFile(null); 
@@ -214,7 +245,6 @@ const obtenerListaResultados = () => {
       <div id="content">
         <nav className="navbar navbar-light bg-white shadow-sm px-4 py-3 sticky-top" style={{zIndex: 1020}}>
           <div className="d-flex align-items-center justify-content-between w-100">
-            
             <div className="d-flex align-items-center">
               <button onClick={toggleSidebar} className="btn btn-success px-3 me-3">
                   <i className="bi bi-list fs-5"></i>
@@ -224,7 +254,6 @@ const obtenerListaResultados = () => {
               </h5>
             </div>
 
-            {/* ZONA DERECHA: NOMBRE DE USUARIO (ZONA ROJA) */}
             <div className="d-flex align-items-center bg-light border px-3 py-1 rounded-pill shadow-sm" style={{ cursor: 'pointer' }} onClick={() => navegarA("perfil")}>
                <div className="bg-success rounded-circle d-flex justify-content-center align-items-center me-2" style={{ width: '30px', height: '30px' }}>
                   <i className="bi bi-person-fill text-white"></i>
@@ -234,7 +263,6 @@ const obtenerListaResultados = () => {
                </span>
                <i className="bi bi-chevron-down text-muted small ms-1"></i>
             </div>
-
           </div>
         </nav>
 
@@ -295,24 +323,16 @@ const obtenerListaResultados = () => {
         </div>
       </div>
 
-      {/* --- MODAL DE RESULTADOS OPTIMIZADO PARA ESCRITORIO --- */}
       {showModal && resultado && (
         <div className="modal-overlay">
           <div className="modal-content-custom animate__animated animate__fadeIn">
             <h3 className="fw-bold text-success text-center mb-4">Resultados del Análisis</h3>
 
-            {/* BOTÓN DE CIERRE (X) */}
-            <button 
-              className="btn-close-modal" 
-              onClick={iniciarNuevoAnalisis}
-              aria-label="Cerrar"
-            >
+            <button className="btn-close-modal" onClick={iniciarNuevoAnalisis} aria-label="Cerrar">
               <i className="bi bi-x-lg"></i>
             </button>
 
             <h3 className="fw-bold text-success text-center mb-4">Resultados</h3>
-            
-            {/* ... resto del contenido (imagen, lista de resultados, etc) ... */}
             
             <div className="results-container-desktop">
               {obtenerListaResultados().map((item: any, index: number) => {
@@ -321,11 +341,7 @@ const obtenerListaResultados = () => {
                 const esTop1 = index === 0;
 
                 return (
-                  <div 
-                    key={index} 
-                    className={`result-card ${esTop1 ? 'top-1-card' : 'secondary-card'}`}
-                  >
-                    {/* Imagen integrada solo en el Top 1 */}
+                  <div key={index} className={`result-card ${esTop1 ? 'top-1-card' : 'secondary-card'}`}>
                     {esTop1 && resultado.prediccion_principal?.url_imagen && (
                       <div className="top-1-image-container">
                         <img 
