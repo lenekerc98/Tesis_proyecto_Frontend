@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 // Importamos desde las nuevas carpetas
-import { Analizador } from '../pages/Analizador_usuario'; 
+import { Analizador } from './pages/user/Analizador_usuario'; 
 // import { DashboardAdmin } from "./pages/admin/DashboardAdmin"; 
 
 function App() {
@@ -16,7 +16,7 @@ function App() {
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await axios.post("http://127.0.0.1:8000/v1/usuarios/", {
+      await axios.post("http://127.0.0.1:8000/v1/usuarios/registro", {
         email: email,
         password: password,
         nombre_completo: nombre,

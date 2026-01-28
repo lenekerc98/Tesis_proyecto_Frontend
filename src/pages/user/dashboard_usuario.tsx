@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import "../App.css";
+import "../../App.css";
 
 export const Historial = () => {
   const [registros, setRegistros] = useState<any[]>([]);
