@@ -86,10 +86,10 @@ export const Analizador = () => {
       };
 
       mediaRecorder.current.onstop = () => {
-        const audioBlob = new Blob(audioChunks.current, { type: "audio/mpeg" });
+        const audioBlob = new Blob(audioChunks.current, { type: "audio/webm" });
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
-        const recordedFile = new File([audioBlob], "grabacion_usuario.mp3", { type: "audio/mpeg" });
+        const recordedFile = new File([audioBlob], "grabacion_usuario.webm", { type: "audio/webm" });
         setFile(recordedFile);
       };
 
@@ -120,8 +120,8 @@ export const Analizador = () => {
   const enviarAApi = async () => {
     let archivoParaEnviar = file;
     if (!archivoParaEnviar && audioChunks.current.length > 0) {
-       const audioBlob = new Blob(audioChunks.current, { type: "audio/mpeg" });
-       archivoParaEnviar = new File([audioBlob], "grabacion_temp.mpeg", { type: "audio/mpeg" });
+       const audioBlob = new Blob(audioChunks.current, { type: "audio/webm" });
+       archivoParaEnviar = new File([audioBlob], "grabacion_temp.webm", { type: "audio/webm" });
     }
 
     if (!archivoParaEnviar) {
