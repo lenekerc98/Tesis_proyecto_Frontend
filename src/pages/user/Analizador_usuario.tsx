@@ -300,6 +300,19 @@ const obtenerListaResultados = () => {
         <div className="modal-overlay">
           <div className="modal-content-custom animate__animated animate__fadeIn">
             <h3 className="fw-bold text-success text-center mb-4">Resultados del Análisis</h3>
+
+            {/* BOTÓN DE CIERRE (X) */}
+            <button 
+              className="btn-close-modal" 
+              onClick={iniciarNuevoAnalisis}
+              aria-label="Cerrar"
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+
+            <h3 className="fw-bold text-success text-center mb-4">Resultados</h3>
+            
+            {/* ... resto del contenido (imagen, lista de resultados, etc) ... */}
             
             <div className="results-container-desktop">
               {obtenerListaResultados().map((item: any, index: number) => {

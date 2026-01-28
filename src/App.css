@@ -183,6 +183,32 @@ color: #C0C0BC;
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    position: relative;
+    padding-top: 2rem;
+}
+
+.btn-close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: #6c757d; /* Color gris suave */
+    cursor: pointer;
+    transition: color 0.2s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.btn-close-modal:hover {
+    color: #dc3545; /* Se pone rojo al pasar el mouse */
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: scale(1.1);
 }
 
 /* --- TARJETAS DE RESULTADOS --- */
