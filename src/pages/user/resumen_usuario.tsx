@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import axiosClient from "../../api/axiosClient";
+import { ModalResultados } from "../../components/ModalResultados";
 
-export const Resumen = () => {
+// 1. DEFINIMOS QUE ESTE COMPONENTE RECIBE UNA FUNCIÓN DE NAVEGACIÓN
+interface ResumenProps {
+    onNavigate: (vista: string) => void;
+}
+
+export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA PROP AQUÍ
   // --- ESTADOS ---
   const [metricas, setMetricas] = useState({
     totalRegistros: 0,
@@ -19,30 +25,27 @@ export const Resumen = () => {
   // Estados para Modales
   const [showModal, setShowModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  // NUEVO ESTADO: Para la vista previa de la imagen en grande
+  
+  // Estado para la vista previa (Pantalla completa)
   const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("token");
         const userRole = String(localStorage.getItem("role_id")); 
         setRol(userRole);
-        const headers = { "Authorization": `Bearer ${token}` };
 
-        // 1. Determinar URL para "Más Frecuente" según el rol
         let urlMasFrecuente = userRole === "0"
-            ? "http://127.0.0.1:8000/v1/inferencia/predicciones_mas_frecuentes_general"
-            : "http://127.0.0.1:8000/v1/inferencia/predicciones_mas_frecuentes_usuario";
+            ? "/inferencia/predicciones_mas_frecuentes_general"
+            : "/inferencia/predicciones_mas_frecuentes_usuario";
 
-        // 2. Cargar TODO en paralelo
         const [resHistorial, resFrecuente, resAves] = await Promise.all([
-            axios.get("http://127.0.0.1:8000/v1/inferencia/historial", { headers }), //
-            axios.get(urlMasFrecuente, { headers }),
-            axios.get("http://127.0.0.1:8000/v1/inferencia/listar_aves", { headers }) //
+            axiosClient.get("/inferencia/historial"),
+            axiosClient.get(urlMasFrecuente),
+            axiosClient.get("/inferencia/listar_aves")
         ]);
 
-        // --- PROCESAR CATÁLOGO DE AVES ---
+        // --- PROCESAR CATÁLOGO ---
         const mapaFotos: Record<string, string> = {};
         let conteoEspecies = 0;
         if (Array.isArray(resAves.data)) {
@@ -50,7 +53,7 @@ export const Resumen = () => {
             resAves.data.forEach((ave: any) => {
                 mapaFotos[ave.nombre_cientifico] = ave.imagen_url;
             });
-            setPreviewImages(resAves.data.slice(0, 10)); // Para la tira de imágenes
+            setPreviewImages(resAves.data.slice(0, 10));
         }
         setImagenesMap(mapaFotos);
 
@@ -117,21 +120,25 @@ export const Resumen = () => {
     setSelectedItem(null);
   };
 
-  // --- NUEVAS FUNCIONES PARA LA VISTA PREVIA DE IMAGEN ---
-  const abrirImagePreview = (url: string) => {
-    if (url) setSelectedImagePreview(url);
-  };
+  const abrirImagePreview = (url: string) => { if (url) setSelectedImagePreview(url); };
+  const cerrarImagePreview = () => { setSelectedImagePreview(null); };
 
-  const cerrarImagePreview = () => {
-    setSelectedImagePreview(null);
-  };
+  // --- 2. ADAPTADOR DE DATOS PARA EL MODAL ---
+  const datosParaModal = selectedItem ? {
+      principal: {
+          nombre_cientifico: selectedItem.prediccion,
+          probabilidad: selectedItem.confianza,
+          url_imagen: imagenesMap[selectedItem.prediccion] 
+      },
+      lista: selectedItem.top_5 || []
+  } : null;
 
   if (loading) return <div className="p-5 text-center"><div className="spinner-border text-success"></div></div>;
 
   return (
     <div className="p-4 animate__animated animate__fadeIn">
       
-      {/* --- SECCIÓN 1: TARJETAS DE MÉTRICAS --- */}
+      {/* SECCIÓN 1: TARJETAS DE MÉTRICAS */}
       <h4 className="fw-bold mb-4 text-dark">Resumen de Actividad</h4>
       <div className="row row-cols-1 row-cols-md-2 row-cols-lg-5 g-3 mb-4">
          <div className="col">
@@ -183,12 +190,21 @@ export const Resumen = () => {
          </div>
       </div>
 
-      {/* --- SECCIÓN 2: TIRA DE IMÁGENES DEL CATÁLOGO --- */}
+      {/* SECCIÓN 2: TIRA DE IMÁGENES DEL CATÁLOGO */}
       {previewImages.length > 0 && (
         <div className="mb-5 animate__animated animate__fadeIn delay-1s">
             <div className="d-flex align-items-center justify-content-between mb-3">
                  <h5 className="fw-bold text-dark m-0">Explora el Catálogo</h5>
-                 <small className="text-muted">Desliza para ver más <i className="bi bi-arrow-right"></i></small>
+                 
+                 {/* --- AQUÍ ESTÁ EL CAMBIO PARA NAVEGAR --- */}
+                 <span 
+                    className="text-primary small fw-bold" 
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => onNavigate('catalogo')} 
+                 >
+                    Ver catálogo completo <i className="bi bi-arrow-right ms-1"></i>
+                 </span>
+
             </div>
             <div className="d-flex gap-3 py-2" style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
                 {previewImages.map((ave, index) => (
@@ -207,7 +223,11 @@ export const Resumen = () => {
                 </div>
                 ))}
                 {metricas.totalEspecies > previewImages.length && (
-                     <div className="flex-shrink-0 d-flex flex-column align-items-center justify-content-center bg-light rounded-4 border text-muted" style={{ width: '110px', height: '85px' }}>
+                     <div 
+                        className="flex-shrink-0 d-flex flex-column align-items-center justify-content-center bg-light rounded-4 border text-muted hover-effect" 
+                        style={{ width: '110px', height: '85px', cursor: 'pointer' }}
+                        onClick={() => onNavigate('catalogo')} // También navegamos al hacer clic en el "+ más"
+                     >
                         <span className="fw-bold fs-5">+{metricas.totalEspecies - previewImages.length}</span>
                         <small style={{fontSize: '0.7rem'}}>más</small>
                      </div>
@@ -216,9 +236,9 @@ export const Resumen = () => {
         </div>
       )}
 
-      {/* --- SECCIÓN 3: LISTA DE HISTORIAL --- */}
+      {/* SECCIÓN 3: LISTA DE HISTORIAL */}
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h5 className="fw-bold text-dark m-0">Detalle de Identificaciones</h5>
+        <h5 className="fw-bold text-dark m-0">Historia de Predicciones</h5>
         <span className={`badge ${rol === "0" ? "bg-warning text-dark" : "bg-success"} border px-3`}>
             {rol === "0" ? "Vista de Administrador" : "Mis Registros"}
         </span>
@@ -239,11 +259,10 @@ export const Resumen = () => {
                 <div className="card border-0 shadow-sm rounded-4 p-2 bg-white history-card border-start border-success border-4">
                   <div className="d-flex justify-content-between align-items-center flex-wrap">
                     
-                    {/* IZQUIERDA: FOTO + INFO */}
+                    {/* INFO IZQUIERDA */}
                     <div className="d-flex align-items-center mb-2 mb-md-0">
                       <div className="me-3 position-relative">
                         {imagenUrl ? (
-                            // --- IMAGEN CON CLICK PARA VISTA PREVIA ---
                             <img 
                                 src={imagenUrl} 
                                 alt="Ave" 
@@ -275,7 +294,6 @@ export const Resumen = () => {
 
                     {/* DERECHA: BOTÓN Y DATOS */}
                     <div className="d-flex align-items-center gap-3 mt-2 mt-md-0">
-                      
                       {rol === "0" && (
                           <div className="text-end border-end pe-3 me-2 d-none d-md-block">
                               <small className="d-block text-muted text-uppercase fw-bold" style={{fontSize: '0.65rem'}}>Usuario</small>
@@ -305,79 +323,32 @@ export const Resumen = () => {
         </div>
       )}
 
-      {/* --- MODAL DE DETALLE (TOP 5) --- */}
-      {showModal && selectedItem && (
-        <div className="modal-overlay">
-          <div className="modal-content-custom animate__animated animate__fadeInUp">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <h4 className="fw-bold text-success m-0">Detalle del Análisis</h4>
-                <button className="btn-close" onClick={cerrarModal}></button>
-            </div>
+      {/* MODAL DE RESULTADOS */}
+      <ModalResultados
+        isOpen={showModal && !!selectedItem}
+        onClose={cerrarModal}
+        titulo="Detalle Histórico"
+        prediccionPrincipal={datosParaModal?.principal}
+        listaPredicciones={datosParaModal?.lista || []}
+        onImageClick={abrirImagePreview} 
+      />
 
-            <div className="text-center mb-4">
-                {imagenesMap[selectedItem.prediccion] && (
-                    <img 
-                        src={imagenesMap[selectedItem.prediccion]} 
-                        alt="Principal" 
-                        className="img-fluid rounded-4 shadow-sm mb-3"
-                        style={{ maxHeight: '200px', objectFit: 'cover', cursor: 'pointer' }}
-                        crossOrigin="anonymous"
-                        onClick={() => abrirImagePreview(imagenesMap[selectedItem.prediccion])}
-                    />
-                )}
-                <h3 className="fst-italic text-capitalize fw-bold">{formatearNombre(selectedItem.prediccion)}</h3>
-                <span className="badge bg-success rounded-pill fs-6 px-3">
-                    Confianza: {(selectedItem.confianza * 100).toFixed(1)}%
-                </span>
-            </div>
-
-            <h6 className="fw-bold text-muted border-bottom pb-2 mb-3">Otras Posibilidades (Top 5)</h6>
-            
-            <div className="results-container-desktop" style={{ maxHeight: '250px', overflowY: 'auto' }}>
-                {selectedItem.top_5 && selectedItem.top_5.map((pred: any, idx: number) => (
-                    <div key={idx} className="result-item d-flex justify-content-between align-items-center p-2 mb-2 rounded bg-light border">
-                        <span className="fw-bold text-secondary fst-italic text-capitalize">
-                            {idx + 1}. {formatearNombre(pred.nombre_cientifico)}
-                        </span>
-                        <span className="badge bg-secondary opacity-75 rounded-pill">
-                            {(pred.probabilidad * 100).toFixed(1)}%
-                        </span>
-                    </div>
-                ))}
-            </div>
-
-            <div className="mt-4 text-end">
-                <button className="btn btn-secondary rounded-pill px-4" onClick={cerrarModal}>Cerrar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- NUEVO: MODAL DE VISTA PREVIA DE IMAGEN EN GRANDE --- */}
+      {/* MODAL DE VISTA PREVIA (FOTO PANTALLA COMPLETA) */}
       {selectedImagePreview && (
-        // CAMBIO AQUÍ: Aumentamos el z-index de 1060 a 2000
         <div 
             className="modal-overlay" 
             onClick={cerrarImagePreview} 
             style={{
-                backgroundColor: 'rgba(0,0,0,0.9)', // Un poco más oscuro para mejor contraste
-                zIndex: 2000, // ¡ESTE ES EL FIX! Un valor alto asegura que quede encima de todo
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100vw',
-                height: '100vh'
+                backgroundColor: 'rgba(0,0,0,0.9)', 
+                zIndex: 2000, 
+                display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh'
             }}
         >
           <div 
               className="position-relative animate__animated animate__zoomIn" 
               style={{maxWidth: '90vw', maxHeight: '90vh'}} 
-              onClick={(e) => e.stopPropagation()} // Evita cerrar si das click en la imagen misma
+              onClick={(e) => e.stopPropagation()} 
           >
-            {/* Botón de cerrar (X) más visible */}
             <button
               className="btn btn-close btn-close-white position-absolute"
               onClick={cerrarImagePreview}

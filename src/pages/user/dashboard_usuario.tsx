@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import axiosClient from "../../../src/api/axiosClient";
 import "../../App.css";
 
 export const Historial = () => {
@@ -10,7 +10,7 @@ export const Historial = () => {
   useEffect(() => {
     const obtenerHistorial = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8000/v1/inferencia/historial", {
+        const response = await axiosClient.get("/inferencia/historial", {
           headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
         });
         // Tu API devuelve un array directo, así que usamos response.data

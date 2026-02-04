@@ -20,7 +20,7 @@ html, body, #root {
 #sidebar {
   width: 280px;
   min-width: 280px;
-  background: #5f7341;
+  background: #798369;
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -76,6 +76,7 @@ txtcolor {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  color: #C0C0BC;
 }
 
 /* BOTÓN MICRÓFONO */
@@ -99,6 +100,7 @@ display: flex;
   justify-content: center;
   text-align: center;
   padding: 40px 20px;
+  color: #C0C0BC;
 
 }
 
@@ -160,19 +162,7 @@ color: #C0C0BC;
 
 /* MODAL DE RESULTADOS */
 /* --- MODAL GENERAL --- */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2500;
-    backdrop-filter: blur(4px); /* Efecto moderno de desenfoque al fondo */
-}
+
 
 .modal-content-custom {
     background: #ffffff;
@@ -187,29 +177,64 @@ color: #C0C0BC;
     padding-top: 2rem;
 }
 
-.btn-close-modal {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    color: #6c757d; /* Color gris suave */
-    cursor: pointer;
-    transition: color 0.2s, transform 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+}
+.text-success {
+  color: #ff0000 !important;
 }
 
-.btn-close-modal:hover {
-    color: #dc3545; /* Se pone rojo al pasar el mouse */
-    background-color: rgba(0, 0, 0, 0.05);
-    transform: scale(1.1);
+.modal-box {
+  background: white;
+  width: 800px;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,.2);
 }
+
+.modal-header-green {
+  background: #5f7f3f;
+  padding: 12px 20px;
+}
+
+.species-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff8e1;
+  border: 1px solid #e0d9b8;
+  margin: 20px;
+  padding: 15px;
+  border-radius: 6px;
+}
+
+.species-info {
+  flex: 1;
+  padding-right: 20px;
+}
+
+.species-image {
+  width: 180px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.badge-identificada {
+  background: #f1f8e9;
+  color: #4a7c2f;
+  font-weight: bold;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
 
 /* --- TARJETAS DE RESULTADOS --- */
 .results-container-desktop {

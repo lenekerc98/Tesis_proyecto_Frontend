@@ -1,8 +1,10 @@
 import { useState } from "react";
-import axios from "axios";
+import axiosclient from "../src/api/axiosClient";
 // Importamos tus páginas
-import { Analizador } from './pages/user/Analizador_usuario'; 
-// import { DashboardAdmin } from "./pages/admin/DashboardAdmin"; 
+import { Analizador } from './pages/all/Analizador_usuario'; 
+// 1. DESCOMENTAMOS ESTA LÍNEA:
+import { DashboardAdmin } from "../src/pages/admin/dashboard_admin"; 
+import fondoImagen from './assets/fondo_bosque.jpg';
 
 function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
@@ -18,21 +20,20 @@ function App() {
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await axios.post("http://127.0.0.1:8000/v1/usuarios/", {
+      await axiosclient.post("/usuarios/registro", {
         email: email,
         password: password,
-        nombre_completo: nombre, // Este nombre se guarda en la BD
+        nombre_completo: nombre, 
         role: "usuario"
       });
       alert("Cuenta creada con éxito. Ahora inicia sesión.");
-      setIsLogin(true); // Cambiamos a la vista de Login
+      setIsLogin(true); 
     } catch (error: any) {
       console.error(error);
       alert("Error al registrarse. Verifica los datos.");
     }
   };
 
-  // --- LOGIN (AQUÍ ES DONDE "JALAMOS" EL NOMBRE) ---
   // --- LOGIN ACTUALIZADO ---
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,44 +42,33 @@ function App() {
       params.append("username", email);
       params.append("password", password);
       
-      // 1. PRIMERA PETICIÓN: Obtener el Token
-      const response = await axios.post("http://127.0.0.1:8000/v1/usuarios/login", params, {
+      const response = await axiosclient.post("/usuarios/login", params, {
         headers: { "Content-Type": "application/x-www-form-urlencoded" }
       });
 
       const { access_token } = response.data;
-      
-      // Guardamos el token primero
       localStorage.setItem("token", access_token);
 
-      // 2. SEGUNDA PETICIÓN (EXTRA): Obtener los datos del usuario usando el token
-      // Intentamos obtener el perfil para sacar el nombre real
       try {
-        const meResponse = await axios.get("http://127.0.0.1:8000/v1/usuarios/me", {
+        const meResponse = await axiosclient.get("/usuarios/me", {
             headers: { "Authorization": `Bearer ${access_token}` }
         });
 
-        console.log("Datos del usuario:", meResponse.data); // <--- MIRA ESTO EN CONSOLA
-
-        // Extraemos los datos reales de la base de datos
+        // Aseguramos obtener los datos correctos según tu API
         const nombreReal = meResponse.data.nombre_completo || meResponse.data.nombre || meResponse.data.email;
-        const rolReal = meResponse.data.role_id || meResponse.data.rol || "1";
+        const rolReal = meResponse.data.role_id; // Tu API devuelve role_id numérico (0 admin, 1 usuario)
 
-        // Guardamos en LocalStorage
         localStorage.setItem("userName", nombreReal);
         localStorage.setItem("role_id", String(rolReal));
-        
-        // Actualizamos estado
         setRole(String(rolReal));
 
       } catch (errorProfile) {
-        console.warn("No se pudo cargar el perfil, usando datos temporales", errorProfile);
-        // Fallback si falla la petición /me
+        console.warn("No se pudo cargar el perfil completo", errorProfile);
+        // Fallback básico si falla /me
         localStorage.setItem("userName", email.split("@")[0]);
-        localStorage.setItem("role_id", "1");
+        localStorage.setItem("role_id", "1"); 
       }
 
-      // 3. Finalizar Login
       setToken(access_token);
 
     } catch (error: any) {
@@ -89,26 +79,33 @@ function App() {
 
   // --- LÓGICA DE NAVEGACIÓN ---
   if (token) {
+    // 2. AQUÍ HACEMOS EL CAMBIO CLAVE:
     if (role === "0") {
-      return <div>Bienvenido Admin (Panel en construcción)</div>;
-      // return <DashboardAdmin />;
+      return <DashboardAdmin />; // Renderizamos el componente DashboardAdmin
     }
-    // Usuario normal
+    // Si no es 0, es usuario normal
     return <Analizador />; 
   }
 
-  // --- VISTA DE LOGIN / REGISTRO ---
+  // --- VISTA DE LOGIN / REGISTRO (Sin cambios) ---
   return (
-    <div className="container d-flex justify-content-center align-items-center vh-100 bg-light">
-      <div className="card p-4 shadow-lg border-0" style={{ maxWidth: "420px", width: "100%", borderRadius: "24px" }}>
+    <div 
+      className="d-flex justify-content-center align-items-center vh-100 w-100"
+      style={{
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(${fondoImagen})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <div className="card p-4 shadow-lg border-0" style={{ maxWidth: "360px", width: "100%", borderRadius: "24px", backgroundColor: "rgba(255, 255, 255, 0.95)" }}>
         
         <div className="text-center mb-4">
             <h1 className="fw-bold text-success display-6">🦜 BirdIA</h1>
-            <p className="text-muted">{isLogin ? "Bienvenido de nuevo" : "Únete a la investigación"}</p>
+            <p className="text-muted">{isLogin ? "Bienvenido al Sistema" : "Únete a la investigación"}</p>
         </div>
 
         <form onSubmit={isLogin ? handleLogin : handleRegister}>
-          {/* Campo Nombre solo visible en Registro */}
           {!isLogin && (
             <div className="mb-3">
               <label className="form-label fw-bold small text-secondary">Nombre Completo</label>
