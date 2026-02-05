@@ -11,7 +11,7 @@ import '../../App.css';
 import { CatalogoAves } from "../all/CatalogoAves";
 import { Historial_admin } from "./historial_admin";
 import { GestionUsuarios } from "./gestionusuarios_admin"; 
-import { Mapas } from "../all/mapas";
+import { Mapas } from "../all/Mapas";
 import { Analizador } from "../all/Analizador_usuario";
 
 // --- TIPOS DE DATOS ---

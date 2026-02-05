@@ -3,7 +3,7 @@ import axios from "axios";
 const axiosClient = axios.create({
   // CORRECCIÓN: Quitamos las comillas y el texto extra.
   // Ahora sí leerá la variable o usará el localhost:8000 si falla.
-  baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/v1",
+  baseURL: import.meta.env.VITE_API_URL || "https://tesis-proyecto-backend.onrender.com/",
   headers: {
     "Content-Type": "application/json",
   },

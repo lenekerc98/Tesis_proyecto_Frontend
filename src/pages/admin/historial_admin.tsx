@@ -206,6 +206,7 @@ export const Historial_admin = () => {
             onClose={cerrarModal}
             titulo={`Detalle Log #${selectedItem.log_id}`}
             prediccionPrincipal={{
+                nombre: formatearVisual(selectedItem.prediccion),
                 nombre_cientifico: selectedItem.prediccion,
                 probabilidad: selectedItem.confianza,
                 // Pasamos la misma foto que encontramos para la tabla

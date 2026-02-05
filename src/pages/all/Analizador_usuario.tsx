@@ -10,7 +10,7 @@ import { Historial } from "../user/historial_usuario";
 import { ModalResultados } from "../../components/ModalResultados"; 
 import aveIcon from "../../assets/ave.png";
 import { CatalogoAves } from "./CatalogoAves";
-import { Mapas } from "./mapas";
+import { Mapas } from "../all/Mapas";
 
 // Si tienes los componentes de admin importados, mantenlos, 
 // aunque idealmente deberían estar separados en DashboardAdmin.tsx

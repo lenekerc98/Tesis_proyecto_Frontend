@@ -126,6 +126,7 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
   // --- 2. ADAPTADOR DE DATOS PARA EL MODAL ---
   const datosParaModal = selectedItem ? {
       principal: {
+          nombre: formatearNombre(selectedItem.prediccion),
           nombre_cientifico: selectedItem.prediccion,
           probabilidad: selectedItem.confianza,
           url_imagen: imagenesMap[selectedItem.prediccion] 
@@ -324,14 +325,17 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
       )}
 
       {/* MODAL DE RESULTADOS */}
-      <ModalResultados
-        isOpen={showModal && !!selectedItem}
-        onClose={cerrarModal}
-        titulo="Detalle Histórico"
-        prediccionPrincipal={datosParaModal?.principal}
-        listaPredicciones={datosParaModal?.lista || []}
-        onImageClick={abrirImagePreview} 
-      />
+      {showModal && datosParaModal && (
+          <ModalResultados
+              isOpen={true}
+              onClose={cerrarModal}
+              titulo="Detalle de Identificación"
+              // Al poner la condición arriba, quitamos el '?' y el error desaparece
+              prediccionPrincipal={datosParaModal.principal} 
+              listaPredicciones={datosParaModal.lista || []}
+              onImageClick={abrirImagePreview}
+          />
+      )}
 
       {/* MODAL DE VISTA PREVIA (FOTO PANTALLA COMPLETA) */}
       {selectedImagePreview && (
