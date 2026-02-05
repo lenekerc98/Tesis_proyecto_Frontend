@@ -77,7 +77,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </div>
                         <ul className="list-unstyled m-0 p-2">
                             <li>
-                                <button className="btn btn-white w-100 text-start px-3 py-2 text-dark rounded-3 mb-1" onClick={() => { onNavigate("perfil"); setShowProfileMenu(false); }}>
+                                <button 
+                                    className="btn btn-white w-100 text-start px-3 py-2 text-dark rounded-3 mb-1" 
+                                    // ESTA LÍNEA ES LA IMPORTANTE:
+                                    onClick={() => { onNavigate("perfil"); setShowProfileMenu(false); }}
+                                >
                                     <i className="bi bi-person-gear me-3 text-info"></i> Mi Perfil
                                 </button>
                             </li>

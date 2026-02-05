@@ -2,53 +2,53 @@ import { useState, useEffect } from "react";
 import axiosClient from "../../api/axiosClient";
 import { ModalResultados } from "../../components/ModalResultados";
 
+// Interfaz para saber qué guardamos en el mapa
+interface InfoAve {
+    url: string;
+    nombreComun: string;
+}
+
 export const Historial_admin = () => {
   // --- ESTADOS ---
   const [registros, setRegistros] = useState<any[]>([]);
-  const [imagenesMap, setImagenesMap] = useState<Record<string, string>>({});
+  const [infoAvesMap, setInfoAvesMap] = useState<Record<string, InfoAve>>({});
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
 
-  // Estados para el Modal de Detalle
+  // Estados para el Modal
   const [showModal, setShowModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
-  // --- FUNCIÓN PARA QUE LOS NOMBRES COINCIDAN SIEMPRE ---
-  // Convierte "Ara_Macao" -> "ara_macao" (minúsculas y sin espacios extra)
+  // --- NORMALIZACIÓN ROBUSTA ---
   const normalizar = (texto: string) => {
       if (!texto) return "";
-      return texto.toLowerCase().trim();
+      return texto.toLowerCase().replace(/_/g, " ").trim();
   };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-
-        // 1. PEDIMOS LAS DOS LISTAS AL MISMO TIEMPO
-        console.log("Cargando historial y aves...");
         
         const [resHistorial, resAves] = await Promise.all([
-            axiosClient.get("/admin/logs/historial"), // Tu endpoint de historial admin
-            axiosClient.get("/inferencia/listar_aves") // Tu catálogo para sacar las fotos
+            axiosClient.get("/admin/logs/historial"), 
+            axiosClient.get("/inferencia/listar_aves") 
         ]);
 
-        // 2. CREAMOS EL "MAPA" DE FOTOS
-        // Clave: Nombre del ave (normalizado) -> Valor: URL de la foto
-        const mapaFotos: Record<string, string> = {};
+        // --- MAPA DE AVES ---
+        const mapaInfo: Record<string, InfoAve> = {};
         
         if (Array.isArray(resAves.data)) {
             resAves.data.forEach((ave: any) => {
-                // Usamos 'nombre_cientifico' e 'imagen_url' según tu captura
                 const clave = normalizar(ave.nombre_cientifico);
-                mapaFotos[clave] = ave.imagen_url;
+                mapaInfo[clave] = {
+                    url: ave.imagen_url, 
+                    nombreComun: ave.nombre 
+                };
             });
         }
-        console.log("Mapa de fotos creado:", Object.keys(mapaFotos).length, "aves encontradas.");
-        setImagenesMap(mapaFotos);
+        setInfoAvesMap(mapaInfo);
 
-        // 3. GUARDAMOS EL HISTORIAL
-        // Aseguramos que sea un array
         const data = Array.isArray(resHistorial.data) ? resHistorial.data : [];
         setRegistros(data);
 
@@ -62,24 +62,38 @@ export const Historial_admin = () => {
   }, []);
 
   // --- FILTRO DE BÚSQUEDA ---
-  const registrosFiltrados = registros.filter(reg => 
-      (reg.usuario || "").toLowerCase().includes(busqueda.toLowerCase()) ||
-      (reg.prediccion || "").toLowerCase().includes(busqueda.toLowerCase())
-  );
+  const registrosFiltrados = registros.filter(reg => {
+      const nombreCientificoNorm = normalizar(reg.prediccion);
+      const infoAve = infoAvesMap[nombreCientificoNorm];
+      const nombreComun = infoAve?.nombreComun || "";
 
-  // Helper para quitar guiones bajos al mostrar (Estético)
-  const formatearVisual = (texto: string) => texto ? texto.replace(/_/g, " ") : "Desconocido";
+      return (
+        (reg.usuario || "").toLowerCase().includes(busqueda.toLowerCase()) ||
+        (reg.prediccion || "").toLowerCase().includes(busqueda.toLowerCase()) ||
+        nombreComun.toLowerCase().includes(busqueda.toLowerCase())
+      );
+  });
 
-  // Manejo del Modal
+  const formatearTexto = (texto: string) => {
+      if (!texto) return "Desconocido";
+      const limpio = texto.replace(/_/g, " ");
+      return limpio.replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   const abrirModal = (item: any) => { setSelectedItem(item); setShowModal(true); };
   const cerrarModal = () => { setShowModal(false); setSelectedItem(null); };
 
   if (loading) return <div className="p-5 text-center"><div className="spinner-border text-success"></div></div>;
 
+  const formatearNombre = (texto: string) => {
+      if (!texto) return "Desconocido";
+      const limpio = texto.replace(/_/g, " ");
+      return limpio.replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   return (
     <div className="p-4 animate__animated animate__fadeIn">
       
-      {/* CABECERA */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 className="fw-bold text-dark m-0">Historial Global</h3>
@@ -99,7 +113,6 @@ export const Historial_admin = () => {
         </div>
       </div>
 
-      {/* TABLA */}
       <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
@@ -116,22 +129,32 @@ export const Historial_admin = () => {
               {registrosFiltrados.length > 0 ? (
                 registrosFiltrados.map((reg) => {
                   
-                  // --- AQUÍ BUSCAMOS LA FOTO ---
-                  const nombreNormalizado = normalizar(reg.prediccion);
-                  const fotoUrl = imagenesMap[nombreNormalizado];
+                  const clave = normalizar(reg.prediccion);
+                  const infoAve = infoAvesMap[clave];
+                  const fotoUrl = infoAve?.url;
+                  const nombreMostrar = infoAve?.nombreComun || formatearTexto(reg.prediccion);
 
                   return (
                     <tr key={reg.log_id}>
                       <td className="ps-4">
                         <div className="d-flex align-items-center">
-                          {/* IMAGEN CIRCULAR */}
+                          {/* FOTO CON SOLUCIÓN AL BLOQUEO */}
                           <div className="me-3 position-relative" style={{width: '45px', height: '45px'}}>
                               {fotoUrl ? (
                                 <img 
                                     src={fotoUrl} 
                                     alt="Ave" 
                                     className="rounded-circle border shadow-sm w-100 h-100 object-fit-cover"
-                                    onError={(e) => e.currentTarget.style.display = 'none'} 
+                                    
+                                    /* --- ¡AQUÍ ESTÁ LA MAGIA! --- */
+                                    /* Esto evita que el navegador envíe info extra que AWS bloquea */
+                                    referrerPolicy="no-referrer"
+                                    /* ---------------------------- */
+
+                                    onError={(e) => {
+                                        // Si falla la carga, ocultamos la imagen para que se vea el icono de fondo
+                                        e.currentTarget.style.display = 'none';
+                                    }} 
                                 />
                               ) : (
                                 <div className="bg-light rounded-circle border d-flex align-items-center justify-content-center w-100 h-100">
@@ -140,17 +163,17 @@ export const Historial_admin = () => {
                               )}
                           </div>
                           
-                          {/* NOMBRE DEL AVE */}
                           <div>
                               <div className="fw-bold text-dark text-capitalize">
-                                  {formatearVisual(reg.prediccion)}
+                                  {nombreMostrar}
                               </div>
-                              <small className="text-muted" style={{fontSize: '0.75rem'}}>Log #{reg.log_id}</small>
+                              <small className="text-muted fst-italic">
+                                  {formatearTexto(reg.prediccion)}
+                              </small>
                           </div>
                         </div>
                       </td>
                       
-                      {/* USUARIO */}
                       <td>
                           <div className="d-flex align-items-center">
                               <div className="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold" style={{width:'30px', height:'30px', fontSize:'0.8rem'}}>
@@ -162,25 +185,19 @@ export const Historial_admin = () => {
                           </div>
                       </td>
 
-                      {/* CONFIANZA */}
                       <td>
                           <span className={`badge ${reg.confianza > 0.8 ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'} border rounded-pill px-3`}>
                               {(reg.confianza * 100).toFixed(1)}%
                           </span>
                       </td>
 
-                      {/* FECHA */}
                       <td className="text-muted small">
                           <div>{new Date(reg.fecha).toLocaleDateString()}</div>
                           <div className="opacity-75">{new Date(reg.fecha).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                       </td>
 
-                      {/* BOTÓN */}
                       <td className="text-end pe-4">
-                          <button 
-                              className="btn btn-sm btn-outline-primary rounded-pill px-3"
-                              onClick={() => abrirModal(reg)}
-                          >
+                          <button className="btn btn-sm btn-outline-primary rounded-pill px-3" onClick={() => abrirModal(reg)}>
                               Ver
                           </button>
                       </td>
@@ -199,18 +216,17 @@ export const Historial_admin = () => {
         </div>
       </div>
 
-      {/* MODAL DETALLE CON FOTO */}
+      {/* MODAL DETALLE */}
       {selectedItem && (
           <ModalResultados
             isOpen={showModal}
             onClose={cerrarModal}
-            titulo={`Detalle Log #${selectedItem.log_id}`}
+            titulo={`Historial de Predicciones para ${formatearNombre(selectedItem.prediccion)}`}
             prediccionPrincipal={{
-                nombre: formatearVisual(selectedItem.prediccion),
+                nombre: infoAvesMap[normalizar(selectedItem.prediccion)]?.nombreComun || formatearTexto(selectedItem.prediccion),
                 nombre_cientifico: selectedItem.prediccion,
                 probabilidad: selectedItem.confianza,
-                // Pasamos la misma foto que encontramos para la tabla
-                url_imagen: imagenesMap[normalizar(selectedItem.prediccion)]
+                url_imagen: infoAvesMap[normalizar(selectedItem.prediccion)]?.url
             }}
             listaPredicciones={selectedItem.top_5 || []}
           />

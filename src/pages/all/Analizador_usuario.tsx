@@ -2,19 +2,19 @@ import { useState, useRef, useEffect } from "react";
 import axiosClient from "../../api/axiosClient"; 
 import '../../App.css';
 
-// COMPONENTES IMPORTS
+// --- COMPONENTES IMPORTS ---
 import { Sidebar } from "../../components/Sidebar"; 
-import { Navbar } from "../../components/Navbar"; // <--- 1. IMPORTAMOS NAVBAR
+import { Navbar } from "../../components/Navbar"; 
 import { Resumen } from "../user/resumen_usuario";
 import { Historial } from "../user/historial_usuario";
 import { ModalResultados } from "../../components/ModalResultados"; 
-import aveIcon from "../../assets/ave.png";
 import { CatalogoAves } from "./CatalogoAves";
 import { Mapas } from "../all/Mapas";
 
-// Si tienes los componentes de admin importados, mantenlos, 
-// aunque idealmente deberían estar separados en DashboardAdmin.tsx
-// Para este ejemplo, asumo que quieres mantener la lógica híbrida que me pasaste:
+// --- IMPORTACIÓN DEL PERFIL (Asegúrate que la ruta sea correcta) ---
+import { Perfil } from "../all/perfil_usuario"; 
+
+import aveIcon from "../../assets/ave.png";
 
 export const Analizador = () => {
   // --- ESTADOS DE SEGURIDAD Y CARGA ---
@@ -31,33 +31,50 @@ export const Analizador = () => {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  // --- ESTADO PARA DICCIONARIO DE NOMBRES DE AVES ---
+  const [infoAvesMap, setInfoAvesMap] = useState<Record<string, { nombre: string; url: string }>>({});
+
   // --- GEOLOCALIZACIÓN ---
   const [latitud, setLatitud] = useState<number | null>(null);
   const [longitud, setLongitud] = useState<number | null>(null);
   const [localizacion, setLocalizacion] = useState<string>("");
 
-  // --- 1. VERIFICAR ROL ---
+  // --- HELPER: FORMATEAR TEXTO ---
+  const formatearTexto = (texto: string) => {
+      if (!texto) return "Desconocido";
+      return texto.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // --- 1. VERIFICAR ROL Y CARGAR CATÁLOGO ---
   useEffect(() => {
-    const verificarSesion = async () => {
+    const initData = async () => {
         try {
-            const response = await axiosClient.get("/usuarios/me");
-            const userData = response.data;
+            // A. Verificar Sesión
+            const resUser = await axiosClient.get("/usuarios/me");
+            const userData = resUser.data;
             const esAdminReal = userData.role_id === 0; 
             
             setIsAdmin(esAdminReal);
             localStorage.setItem("role_id", userData.role_id.toString());
             localStorage.setItem("userName", userData.nombre_completo);
 
-            setVista("analizador");
+            // B. Cargar Catálogo (Para traducir nombres científicos en el Modal)
+            const resAves = await axiosClient.get("/inferencia/listar_aves");
+            const mapa: any = {};
+            if (Array.isArray(resAves.data)) {
+                resAves.data.forEach((ave: any) => {
+                    mapa[ave.nombre_cientifico] = { nombre: ave.nombre, url: ave.imagen_url };
+                });
+            }
+            setInfoAvesMap(mapa);
+
         } catch (error) {
-            console.error("Error de sesión:", error);
-            localStorage.clear();
-            window.location.href = "/";
+            console.error("Error inicializando:", error);
         } finally {
             setCheckingRole(false);
         }
     };
-    verificarSesion();
+    initData();
   }, []);
 
   // --- 2. OBTENER UBICACIÓN ---
@@ -76,27 +93,33 @@ export const Analizador = () => {
     );
   };
 
-  // --- 3. TEMPORIZADOR INACTIVIDAD ---
+  // --- 3. TEMPORIZADOR INACTIVIDAD (AMABLE) ---
   useEffect(() => {
-    const TIEMPO_LIMITE = 15 * 60 * 1000;
+    const MINUTOS_LIMITE = 10; 
+    const TIEMPO_MS = MINUTOS_LIMITE * 60 * 1000; 
     let timer: number;
 
     const resetTimer = () => {
       if (timer) clearTimeout(timer);
       timer = window.setTimeout(() => {
-        alert("Sesión cerrada por inactividad.");
-        handleLogout(); // Usamos la función helper
-      }, TIEMPO_LIMITE);
+        // Preguntar antes de cerrar
+        const seguir = window.confirm(`Tu sesión ha estado inactiva por ${MINUTOS_LIMITE} minutos. ¿Quieres mantenerla abierta?`);
+        if (seguir) {
+          resetTimer();
+        } else {
+          handleLogout();
+        }
+      }, TIEMPO_MS);
     };
 
-    const eventos = ['mousemove', 'keydown', 'click', 'scroll'];
+    const eventos = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
     eventos.forEach(event => window.addEventListener(event, resetTimer));
     resetTimer(); 
     obtenerUbicacion();
 
     return () => {
       eventos.forEach(event => window.removeEventListener(event, resetTimer));
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
     };
   }, []);
 
@@ -109,12 +132,9 @@ export const Analizador = () => {
   const navegarA = (nuevaVista: string) => { setVista(nuevaVista); setActive(false); };
   const handleButtonClick = () => fileInputRef.current?.click();
 
-  // --- 2. NUEVA FUNCIÓN LOGOUT PARA EL NAVBAR ---
   const handleLogout = () => {
-      if(window.confirm("¿Deseas cerrar sesión?")) {
-          localStorage.clear();
-          window.location.href = "/";
-      }
+      localStorage.clear();
+      window.location.href = "/";
   };
 
   const eliminarAudio = () => {
@@ -210,8 +230,6 @@ export const Analizador = () => {
     audioChunks.current = []; 
   };
   
-  const abrirVistaPrevia = (url: string) => window.open(url, '_blank');
-
   if (checkingRole) {
       return (
           <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
@@ -223,7 +241,6 @@ export const Analizador = () => {
   return (
     <div className="wrapper">
       
-      {/* SOLO MOSTRAR SIDEBAR SI NO ES ADMIN */}
       {!isAdmin && (
         <Sidebar 
           isOpen={active} 
@@ -236,24 +253,22 @@ export const Analizador = () => {
 
       <div id="content">
         
-        {/* --- 3. REEMPLAZO DEL NAVBAR MANUAL POR EL COMPONENTE --- */}
+        {/* NAVBAR */}
         {!isAdmin && (
         <Navbar 
             toggleSidebar={toggleSidebar}
             currentView={vista}
-            // Obtenemos el nombre del localStorage (guardado en el useEffect inicial)
             userName={localStorage.getItem("userName") || "Usuario"}
-            // Determinamos el rol visual
             userRole={isAdmin ? "Administrador" : "Investigador"}
-            onLogout={handleLogout}
+            onLogout={() => { if(window.confirm("¿Cerrar sesión?")) handleLogout(); }}
             onNavigate={navegarA}
         />
         )}
 
-        {/* ÁREA DE CONTENIDO */}
+        {/* ÁREA PRINCIPAL */}
         <div className="main-content-area h-100 p-3">
           
-          {/* VISTA ANALIZADOR (Usuario) */}
+          {/* 1. VISTA ANALIZADOR */}
           {vista === "analizador" && (
               <div className="animate__animated animate__fadeIn">
                   <div className="encabezado-analizador d-flex flex-column align-items-center mb-4">
@@ -297,35 +312,31 @@ export const Analizador = () => {
                               <button className="upload-btn" onClick={handleButtonClick}>
                                   <i className="bi bi-upload me-2"></i> Subir archivo (mp3/wav)
                               </button>
-                              
                               <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="audio/*" onChange={handleFileChange} />
                           </>
-                          
                       )}
-                      
                   </div>
                   <p className="text-muted mt-2 pie-analizador"> O puedes cargar tu archivo de audio</p>
               </div>
           )}
 
+          {/* 2. OTRAS VISTAS */}
           {vista === 'resumen' && <Resumen onNavigate={navegarA} />}
           {vista === 'mapas' && <Mapas />}
           {vista === 'catalogo' && <CatalogoAves />}
           {vista === 'historial' && <Historial />}
-          {/* VISTAS ADMIN */}
+          
+          {/* 3. VISTA PERFIL - ¡AQUÍ ESTABA EL PROBLEMA! */}
+          {vista === 'perfil' && <Perfil/>}
+
+          {/* 4. DASHBOARD ADMIN */}
           {isAdmin && vista === "admin_dashboard" && (
               <div className="p-5 text-center bg-white rounded-4 shadow-sm h-100">
                   <h2 className="fw-bold">Panel de Administración</h2>
                   <p>Bienvenido. Selecciona una opción del menú.</p>
-                  
-                  {/* Botones temporales para probar navegación */}
                   <div className="mt-4">
-                      <button className="btn btn-primary me-2" onClick={() => navegarA('analizador')}>
-                          Ir al Analizador
-                      </button>
-                      <button className="btn btn-success" onClick={() => navegarA('admin_historial')}>
-                          Ver Historial Global
-                      </button>
+                      <button className="btn btn-primary me-2" onClick={() => navegarA('analizador')}>Ir al Analizador</button>
+                      <button className="btn btn-success" onClick={() => navegarA('admin_historial')}>Ver Historial Global</button>
                   </div>
               </div>
           )}
@@ -333,15 +344,29 @@ export const Analizador = () => {
         </div>
       </div>
 
-      {/* MODAL RESULTADOS */}
+      {/* --- MODAL RESULTADOS --- */}
       {showModal && resultado && (
           <ModalResultados
              isOpen={showModal}
              onClose={iniciarNuevoAnalisis}
              titulo="Resultado del Análisis"
-             prediccionPrincipal={resultado.prediccion_principal}
+             
+             // MAPEO DE DATOS PARA QUE SE VEAN NOMBRES Y FOTOS
+             prediccionPrincipal={{
+                 // Buscamos nombre común o formateamos el científico
+                 nombre: infoAvesMap[resultado.prediccion_principal.especie]?.nombre || formatearTexto(resultado.prediccion_principal.especie),
+                 
+                 // Nombre científico tal cual viene de la API
+                 nombre_cientifico: resultado.prediccion_principal.especie,
+                 
+                 probabilidad: resultado.prediccion_principal.probabilidad,
+                 
+                 // Prioridad: Foto del análisis > Foto del catálogo > Null
+                 url_imagen: resultado.prediccion_principal.url_imagen || infoAvesMap[resultado.prediccion_principal.especie]?.url
+             }}
+             
              listaPredicciones={obtenerListaResultados()}
-             onImageClick={abrirVistaPrevia}
+             
              botonAccion={
                  <button className="btn btn-success rounded-pill px-4 fw-bold" onClick={iniciarNuevoAnalisis}>
                     Nuevo Análisis
