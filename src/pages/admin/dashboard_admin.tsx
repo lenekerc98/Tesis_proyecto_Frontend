@@ -218,6 +218,7 @@ export const DashboardAdmin = () => {
             {vista === 'admin_errores' && <VistaErrores />}
             {vista === 'admin_historial' && <Historial_admin />}
             {vista === 'catalogo' && <CatalogoAves />}
+            {vista === 'catalogo' && <CatalogoAves />}
             
         </div>
 
