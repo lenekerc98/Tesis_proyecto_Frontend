@@ -85,11 +85,6 @@ export const Historial_admin = () => {
 
   if (loading) return <div className="p-5 text-center"><div className="spinner-border text-success"></div></div>;
 
-  const formatearNombre = (texto: string) => {
-      if (!texto) return "Desconocido";
-      const limpio = texto.replace(/_/g, " ");
-      return limpio.replace(/\b\w/g, l => l.toUpperCase());
-  };
 
   return (
     <div className="p-4 animate__animated animate__fadeIn">
@@ -221,7 +216,7 @@ export const Historial_admin = () => {
           <ModalResultados
             isOpen={showModal}
             onClose={cerrarModal}
-            titulo={`Historial de Predicciones para ${formatearNombre(selectedItem.prediccion)}`}
+            titulo={`Historial de Predicciones - ID: ${selectedItem.log_id}`}
             prediccionPrincipal={{
                 nombre: infoAvesMap[normalizar(selectedItem.prediccion)]?.nombreComun || formatearTexto(selectedItem.prediccion),
                 nombre_cientifico: selectedItem.prediccion,

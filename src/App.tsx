@@ -1,16 +1,16 @@
 import { useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"; // <--- IMPORTANTE
-import axiosclient from "../src/api/axiosClient";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import axiosclient from "./api/axiosClient"; // Asegúrate que la ruta sea correcta
 import { Analizador } from './pages/all/Analizador_usuario'; 
-import { DashboardAdmin } from "../src/pages/admin/dashboard_admin"; 
+import { DashboardAdmin } from "./pages/admin/dashboard_admin"; 
 import fondoImagen from './assets/fondo_bosque.jpg';
 
 function App() {
+  // Leemos el token y el rol del almacenamiento local al iniciar
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const [role, setRole] = useState<string | null>(localStorage.getItem("role_id"));
 
   // --- COMPONENTE INTERNO: VISTA DE LOGIN/REGISTRO ---
-  // (Separamos esto para poder usarlo dentro de las Rutas)
   const LoginView = () => {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
@@ -43,10 +43,12 @@ function App() {
         });
 
         const { access_token } = response.data;
+        
+        // Guardamos token y actualizamos estado para provocar la redirección
         localStorage.setItem("token", access_token);
-        setToken(access_token); // Actualizamos estado global
+        setToken(access_token); 
 
-        // Obtener rol
+        // Obtener datos del usuario (Rol y Nombre)
         try {
           const meResponse = await axiosclient.get("/usuarios/me", {
               headers: { "Authorization": `Bearer ${access_token}` }
@@ -56,9 +58,9 @@ function App() {
 
           localStorage.setItem("userName", nombreReal);
           localStorage.setItem("role_id", String(rolReal));
-          setRole(String(rolReal)); // Actualizamos estado global
+          setRole(String(rolReal)); 
         } catch (error) {
-          // Fallback
+          // Fallback si falla la petición /me
           localStorage.setItem("userName", email);
           localStorage.setItem("role_id", "1");
           setRole("1");
@@ -116,18 +118,19 @@ function App() {
     );
   };
 
-  // --- ESTRUCTURA DE RUTAS ---
+  // --- RUTAS Y NAVEGACIÓN ---
   return (
     <BrowserRouter>
       <Routes>
-        {/* RUTA LOGIN: Si ya hay token, te manda al inicio. Si no, muestra el LoginView */}
+        {/* 1. RUTA LOGIN: Si NO tienes token, ves el Login. Si YA tienes, te manda al inicio ("/") */}
         <Route path="/login" element={!token ? <LoginView /> : <Navigate to="/" />} />
 
-        {/* RUTA PRINCIPAL (PROTEGIDA): Si no hay token, al login. Si hay, verifica el ROL */}
+        {/* 2. RUTA INICIO ("/"): Si TIENES token, te muestra la app. Si NO, te manda al Login */}
         <Route 
           path="/" 
           element={
             token ? (
+              // Si eres Admin (0) vas al Dashboard, si no al Analizador
               role === "0" ? <DashboardAdmin /> : <Analizador />
             ) : (
               <Navigate to="/login" />
@@ -135,7 +138,7 @@ function App() {
           } 
         />
         
-        {/* RUTA COMODÍN: Cualquier url desconocida redirige al home */}
+        {/* 3. CUALQUIER OTRA RUTA: Te manda al inicio para que el filtro decida */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
