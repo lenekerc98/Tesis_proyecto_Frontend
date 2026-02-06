@@ -306,17 +306,25 @@ export const Analizador = () => {
                       </div>
                   </div>
 
-                  <div className="pie-analizador mt-5 text-center">
+                  {/* CONTENEDOR DEL BOTÓN */}
+                  {/* 'd-flex justify-content-center' es lo que lo centra horizontalmente */}
+                  <div className="d-flex justify-content-center mt-3">
                       {!isRecording && !audioUrl && (
                           <>
-                              <button className="upload-btn" onClick={handleButtonClick}>
+                              <button className="btn btn-light border shadow-sm px-4 py-2" onClick={handleButtonClick}>
                                   <i className="bi bi-upload me-2"></i> Subir archivo (mp3/wav)
                               </button>
                               <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="audio/*" onChange={handleFileChange} />
                           </>
                       )}
                   </div>
-                  <p className="text-muted mt-2 pie-analizador"> O puedes cargar tu archivo de audio</p>
+
+                  {/* TEXTO DE ABAJO */}
+                  {/* 'text-center' centra el texto */}
+                  <p className="text-center text-muted mt-2 small">
+                      O puedes cargar tu archivo de audio
+                  </p>
+                  
               </div>
           )}
 
