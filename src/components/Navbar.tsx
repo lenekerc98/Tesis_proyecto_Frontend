@@ -4,8 +4,8 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 interface NavbarProps {
   toggleSidebar: () => void;
   currentView: string;
-  userName: string; // <--- NUEVO: Nombre real del usuario
-  userRole: string; // <--- NUEVO: "Administrador" o "Usuario" (para la etiqueta pequeña)
+  userName: string; // Recibimos el nombre real
+  userRole: string; // "Administrador" o "Usuario"
   onLogout: () => void;
   onNavigate: (view: string) => void;
 }
@@ -13,8 +13,8 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ 
   toggleSidebar, 
   currentView, 
-  userName,   // Recibimos el nombre
-  userRole,   // Recibimos el rol
+  userName, 
+  userRole, 
   onLogout,
   onNavigate 
 }) => {
@@ -29,7 +29,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         
         {/* IZQUIERDA: Botón Sidebar Móvil + Título */}
         <div className="d-flex align-items-center">
-          <button onClick={toggleSidebar} className="btn btn-success px-3 me-3 d-md-none" style={{background: "#798369"}}>
+          <button 
+            onClick={toggleSidebar} 
+            className="btn btn-success px-3 me-3 d-md-none" 
+            style={{background: "#798369", borderColor: "#798369"}}
+          >
               <i className="bi bi-list fs-5"></i>
           </button>
           <h5 className="mb-0 fw-bold text-secondary text-capitalize">
@@ -52,7 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {/* NOMBRE Y ROL DINÁMICOS */}
                 <div className="d-none d-sm-flex flex-column me-2 text-start" style={{lineHeight: '1.2'}}>
                     <span className="fw-bold text-dark small text-truncate" style={{maxWidth: '150px'}}>
-                        {userName} {/* <--- AQUÍ VA EL NOMBRE REAL */}
+                        {userName} 
                     </span>
                     <span className="text-muted text-uppercase" style={{fontSize: '0.65rem'}}>
                         {userRole}
@@ -65,6 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* DROPDOWN MENU */}
             {showProfileMenu && (
                 <>
+                    {/* Overlay transparente para cerrar al hacer clic fuera */}
                     <div 
                         style={{position:'fixed', top:0, left:0, width:'100%', height:'100%', zIndex: 1021}} 
                         onClick={() => setShowProfileMenu(false)}
@@ -79,7 +84,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                             <li>
                                 <button 
                                     className="btn btn-white w-100 text-start px-3 py-2 text-dark rounded-3 mb-1" 
-                                    // ESTA LÍNEA ES LA IMPORTANTE:
                                     onClick={() => { onNavigate("perfil"); setShowProfileMenu(false); }}
                                 >
                                     <i className="bi bi-person-gear me-3 text-info"></i> Mi Perfil
@@ -87,7 +91,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                             </li>
                             <li><hr className="dropdown-divider my-1 border-secondary border-opacity-10" /></li>
                             <li>
-                                <button className="btn btn-white w-100 text-start px-3 py-2 text-danger fw-bold rounded-3" onClick={onLogout}>
+                                <button 
+                                    className="btn btn-white w-100 text-start px-3 py-2 text-danger fw-bold rounded-3" 
+                                    onClick={onLogout}
+                                >
                                     <i className="bi bi-box-arrow-right me-3"></i> Cerrar Sesión
                                 </button>
                             </li>

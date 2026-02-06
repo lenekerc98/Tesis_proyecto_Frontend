@@ -35,8 +35,8 @@ interface LogError {
 export const DashboardAdmin = () => {
   // --- ESTADOS ---
   const [vista, setVista] = useState("admin_dashboard");
-  const [active, setActive] = useState(false); 
-  const [nombreUsuario, setNombreUsuario] = useState("Cargando..."); 
+  const [active, setActive] = useState(false);
+  const [nombreUsuario, setNombreUsuario] = useState("Cargando...");
 
   // --- EFECTO: OBTENER NOMBRE DEL USUARIO ---
   useEffect(() => {
@@ -63,11 +63,11 @@ export const DashboardAdmin = () => {
   const navegarA = (v: string) => { setVista(v); setActive(false); };
 
   const handleLogout = () => {
-    if(window.confirm("¿Estás seguro de que deseas cerrar sesión?")) {
-        localStorage.clear();
-        window.location.href = "/";
-    }
-  };
+      localStorage.removeItem("token");
+      localStorage.removeItem("role_id");
+      localStorage.removeItem("userName");
+      window.location.href = "/login";
+    };
 
   // --- VISTAS INTERNAS ---
   const VistaResumen = () => (
@@ -200,12 +200,23 @@ export const DashboardAdmin = () => {
         
         {/* --- NAVBAR DINÁMICO --- */}
         <Navbar 
-            toggleSidebar={toggleSidebar}
-            currentView={vista}
-            userName={nombreUsuario}      
-            userRole="Administrador"      
-            onLogout={handleLogout}
-            onNavigate={navegarA}
+          // 1. Usamos tu función 'toggleSidebar' (que usa 'active')
+          toggleSidebar={toggleSidebar} 
+
+          // 2. Usamos tu variable 'vista'
+          currentView={vista}
+
+          // 3. Usamos tu variable 'nombreUsuario'
+          userName={nombreUsuario}
+          
+          // 4. Rol fijo
+          userRole="Administrador" 
+
+          // 5. Tu función de logout
+          onLogout={handleLogout}
+
+          // 6. Tu función 'navegarA' (que cambia la vista y cierra el menú)
+          onNavigate={navegarA} 
         />
 
         {/* ÁREA DE VISTAS */}

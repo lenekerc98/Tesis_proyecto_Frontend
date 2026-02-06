@@ -315,8 +315,9 @@ export const Analizador = () => {
                               <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="audio/*" onChange={handleFileChange} />
                           </>
                       )}
+                       <p className="text-muted mt-2 pie-analizador"> O puedes cargar tu archivo de audio</p>
                   </div>
-                  <p className="text-muted mt-2 pie-analizador"> O puedes cargar tu archivo de audio</p>
+                 
               </div>
           )}
 
