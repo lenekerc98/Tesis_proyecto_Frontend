@@ -317,7 +317,6 @@ export const Analizador = () => {
                       )}
                   </div>
                   <p className="text-muted mt-2 pie-analizador"> O puedes cargar tu archivo de audio</p>
-                 
               </div>
           )}
 
