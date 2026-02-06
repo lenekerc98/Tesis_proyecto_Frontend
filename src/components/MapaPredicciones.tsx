@@ -31,12 +31,11 @@ interface InferenciaHistorial {
     ubicacion: string;
     latitud: number | null;
     longitud: number | null;
-    usuario?: string; // IMPORTANTE: Campo usuario para el admin
+    usuario?: string; 
     foto?: string;
     nombre_comun?: string;
 }
 
-// Componente para animación de vuelo
 const RecenterMap = ({ coords }: { coords: [number, number] | null }) => {
     const map = useMap();
     useEffect(() => {
@@ -49,35 +48,28 @@ export const MapaPredicciones = () => {
     const [puntos, setPuntos] = useState<InferenciaHistorial[]>([]);
     const [selectedCoords, setSelectedCoords] = useState<[number, number] | null>(null);
     const [selectedId, setSelectedId] = useState<number | null>(null);
-    
-    // --- NUEVOS ESTADOS ---
     const [busqueda, setBusqueda] = useState("");
-    const [limiteVisible, setLimiteVisible] = useState(20); // Empezamos mostrando solo 20
-    const [isAdmin, setIsAdmin] = useState(false);
+    const [limiteVisible, setLimiteVisible] = useState(20);
+    
+    // NOTA: Ya no necesitamos 'isAdmin' para ocultar cosas, 
+    // porque queremos que todos vean todo.
 
-    // Coordenadas iniciales (Centro aproximado)
     const centroInicial: [number, number] = [-2.1894, -79.8891]; 
 
     useEffect(() => {
         const cargarDatos = async () => {
             try {
-                // 1. DETERMINAR ROL (Admin es '0')
-                const roleId = localStorage.getItem("role_id");
-                const esAdmin = roleId === "0";
-                setIsAdmin(esAdmin);
-
-                // 2. SELECCIONAR ENDPOINT SEGÚN ROL
-                // Si es admin, trae TODO el historial. Si no, solo el personal.
-                const endpointHistorial = esAdmin 
-                    ? '/admin/logs/historial' 
-                    : '/inferencia/historial';
+                // --- CAMBIO 1: ENDPOINT UNIFICADO ---
+                // Intentamos usar el endpoint de historial completo para todos.
+                // IMPORTANTE: Asegúrate que tu Backend permita a usuarios normales acceder a esta ruta.
+                // Si da error 403, necesitas crear una ruta pública en el backend como '/inferencia/global'
+                const endpointHistorial = '/admin/logs/historial'; 
 
                 const [resHistorial, resAves] = await Promise.all([
                     axiosClient.get(endpointHistorial), 
                     axiosClient.get('/inferencia/listar_aves')
                 ]);
 
-                // 3. MAPEO DE AVES
                 const mapaAves: Record<string, AveInfo> = {};
                 resAves.data.forEach((ave: any) => {
                     mapaAves[ave.nombre_cientifico] = {
@@ -87,9 +79,6 @@ export const MapaPredicciones = () => {
                     };
                 });
 
-                // 4. PROCESAR HISTORIAL
-                // Nota: Tu API de admin devuelve "usuario", la de usuario no siempre lo trae, 
-                // pero si eres usuario normal, eres tú mismo.
                 const historialCompleto = resHistorial.data
                     .filter((item: any) => 
                         item.latitud && item.longitud && 
@@ -97,29 +86,20 @@ export const MapaPredicciones = () => {
                     )
                     .map((item: any) => {
                         const infoExtra = mapaAves[item.prediccion];
-                            // LÓGICA CORREGIDA DE USUARIO
-                            let nombreUsuarioMostrar = item.usuario; // 1. Prioridad: Lo que diga la API
-                            if (!nombreUsuarioMostrar) {
-                                if (esAdmin) {
-                                    // 2. Si soy Admin y no viene nombre, es un desconocido (NO SOY YO)
-                                    nombreUsuarioMostrar = "Usuario Desconocido"; 
-                                } else {
-                                    // 3. Si soy usuario normal viendo mi historial, asumo que soy Yo
-                                    nombreUsuarioMostrar = localStorage.getItem("userName") || "Yo";
-                                }
-                            }
+                        
+                        // --- CAMBIO 2: LÓGICA DE NOMBRE SIMPLIFICADA ---
+                        // Usamos SIEMPRE lo que venga de la API. 
+                        // Solo si viene vacío ponemos "Anónimo".
+                        const nombreUsuarioMostrar = item.usuario || "Observador Anónimo";
 
-                            return {
-                                ...item,
-                                foto: item.url_imagen || (infoExtra ? infoExtra.imagen_url : null),
-                                nombre_comun: infoExtra ? infoExtra.nombre_comun : item.prediccion,
-                                
-                                // Asignamos la variable corregida
-                                usuario: nombreUsuarioMostrar
-                            };
+                        return {
+                            ...item,
+                            foto: item.url_imagen || (infoExtra ? infoExtra.imagen_url : null),
+                            nombre_comun: infoExtra ? infoExtra.nombre_comun : item.prediccion,
+                            usuario: nombreUsuarioMostrar
+                        };
                     });
                 
-                // Ordenar por fecha (más reciente primero)
                 historialCompleto.sort((a: any, b: any) => 
                     new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
                 );
@@ -128,12 +108,12 @@ export const MapaPredicciones = () => {
 
             } catch (error) {
                 console.error("Error cargando datos:", error);
+                // Tip: Si falla por permisos, podrías hacer un fallback aquí
             }
         };
         cargarDatos();
     }, []);
 
-    // --- FILTRADO INTELIGENTE ---
     const puntosFiltrados = useMemo(() => {
         return puntos.filter(p => {
             const texto = busqueda.toLowerCase();
@@ -145,7 +125,6 @@ export const MapaPredicciones = () => {
         });
     }, [puntos, busqueda]);
 
-    // --- PAGINACIÓN (Recortamos la lista para no saturar) ---
     const puntosVisibles = puntosFiltrados.slice(0, limiteVisible);
 
     const handleItemClick = (punto: InferenciaHistorial) => {
@@ -162,22 +141,21 @@ export const MapaPredicciones = () => {
     return (
         <div className="row g-3 h-100 animate__animated animate__fadeIn">
             
-            {/* --- MAPA (IZQUIERDA) --- */}
+            {/* --- MAPA --- */}
             <div className="col-md-8 col-lg-9 h-100">
                 <div className="card border-0 shadow-sm rounded-4 overflow-hidden h-100 position-relative">
                     
-                    {/* BUSCADOR FLOTANTE SOBRE EL MAPA (Opcional, estilo Google Maps) */}
                     <div className="position-absolute top-0 start-0 m-3 p-2 bg-white rounded-3 shadow-sm" style={{zIndex: 1000, maxWidth: '300px', width: '100%'}}>
                         <div className="input-group input-group-sm">
                             <span className="input-group-text bg-white border-0"><i className="bi bi-search text-muted"></i></span>
                             <input 
                                 type="text" 
                                 className="form-control border-0" 
-                                placeholder={isAdmin ? "Buscar usuario o ave..." : "Buscar mis aves..."}
+                                placeholder="Buscar usuario o ave..." 
                                 value={busqueda}
                                 onChange={(e) => {
                                     setBusqueda(e.target.value);
-                                    setLimiteVisible(20); // Resetear paginación al buscar
+                                    setLimiteVisible(20);
                                 }}
                             />
                         </div>
@@ -191,7 +169,6 @@ export const MapaPredicciones = () => {
                             />
                             <RecenterMap coords={selectedCoords} />
 
-                            {/* Renderizamos SOLO los puntos visibles para no congelar el navegador */}
                             {puntosVisibles.map((punto) => (
                                 <Marker 
                                     key={punto.log_id} 
@@ -212,13 +189,11 @@ export const MapaPredicciones = () => {
                                             )}
                                             <h6 className="fw-bold text-success mb-0 text-capitalize">{punto.nombre_comun}</h6>
                                             
-                                            {/* Si es Admin, mostramos quién lo subió */}
-                                            {isAdmin && (
-                                                <div className="badge bg-primary bg-opacity-10 text-primary mt-1 mb-1">
-                                                    <i className="bi bi-person-fill me-1"></i>
-                                                    {punto.usuario}
-                                                </div>
-                                            )}
+                                            {/* --- CAMBIO 3: SIEMPRE MOSTRAMOS EL USUARIO --- */}
+                                            <div className="badge bg-primary bg-opacity-10 text-primary mt-1 mb-1">
+                                                <i className="bi bi-person-fill me-1"></i>
+                                                {punto.usuario}
+                                            </div>
                                             
                                             <div className="text-muted small mt-2 pt-2 border-top">
                                                 {new Date(punto.fecha).toLocaleDateString()}
@@ -232,13 +207,13 @@ export const MapaPredicciones = () => {
                 </div>
             </div>
 
-            {/* --- LISTA LATERAL (DERECHA) --- */}
+            {/* --- LISTA LATERAL --- */}
             <div className="col-md-4 col-lg-3 h-100">
                 <div className="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column">
                     <div className="card-header bg-white py-3">
                         <div className="d-flex justify-content-between align-items-center">
                             <h6 className="mb-0 fw-bold text-dark">
-                                <i className="bi bi-list-ul me-2"></i>Resultados
+                                <i className="bi bi-globe-americas me-2"></i>Avistamientos
                             </h6>
                             <span className="badge bg-secondary rounded-pill">{puntosFiltrados.length}</span>
                         </div>
@@ -275,12 +250,10 @@ export const MapaPredicciones = () => {
                                                     {punto.nombre_comun}
                                                 </h6>
                                                 
-                                                {/* Mostrar usuario en la lista si es Admin */}
-                                                {isAdmin && (
-                                                    <small className="d-block text-primary text-truncate" style={{fontSize: '0.75rem'}}>
-                                                        <i className="bi bi-person me-1"></i>{punto.usuario}
-                                                    </small>
-                                                )}
+                                                {/* --- CAMBIO 3: SIEMPRE MOSTRAMOS EL USUARIO --- */}
+                                                <small className="d-block text-primary text-truncate" style={{fontSize: '0.75rem'}}>
+                                                    <i className="bi bi-person me-1"></i>{punto.usuario}
+                                                </small>
 
                                                 <small className="text-muted d-block fst-italic text-truncate" style={{fontSize: '0.75rem'}}>
                                                     {punto.prediccion}
@@ -291,17 +264,16 @@ export const MapaPredicciones = () => {
                                 ))
                             ) : (
                                 <div className="p-4 text-center text-muted">
-                                    No se encontraron resultados para "{busqueda}"
+                                    Sin resultados para "{busqueda}"
                                 </div>
                             )}
 
-                            {/* BOTÓN CARGAR MÁS */}
                             {puntosVisibles.length < puntosFiltrados.length && (
                                 <button 
                                     className="btn btn-link text-decoration-none py-3 text-success fw-bold"
                                     onClick={cargarMas}
                                 >
-                                    Cargar más resultados...
+                                    Cargar más...
                                 </button>
                             )}
                         </div>
