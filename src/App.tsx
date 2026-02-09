@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Login } from "../src/pages/login"; // Tu página de Login
-import { Analizador } from './pages/all/Analizador_usuario'; 
+import { Analizador } from '../src/pages/all/Analizador_usuario'; 
 import { DashboardAdmin } from "../src/pages/admin/dashboard_admin"; // Asegúrate que el nombre del archivo coincida (mayúsculas/minúsculas)
 import type { JSX } from "react";
 
