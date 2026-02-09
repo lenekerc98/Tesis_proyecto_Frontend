@@ -1,11 +1,29 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Login } from "../src/pages/login"; // Tu página de Login
 import { Analizador } from './pages/all/Analizador_usuario'; 
-import { DashboardAdmin } from "./pages/admin/dashboard_admin"; 
-import { Login } from "./pages/login"; // <--- Importamos el componente que creamos en el Paso 1
-import type { JSX } from "react";
+import { DashboardAdmin } from "../src/pages/admin/dashboard_admin"; // Asegúrate que el nombre del archivo coincida (mayúsculas/minúsculas)
 
-// --- 1. GUARDIÁN DE RUTAS PRIVADAS ---
-// Si NO hay token, te manda al Login.
+// 1. COMPONENTE "ROOT" (El portero)
+// Este decide a dónde vas cuando escribes solo "localhost:5173"
+const RootRedirect = () => {
+    const token = localStorage.getItem("token");
+    const roleId = localStorage.getItem("role_id");
+
+    // Si NO hay token, te manda al login sin preguntar
+    if (!token) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // Si SÍ hay token, te manda a tu sitio según tu rol
+    if (roleId === "0") {
+        return <Navigate to="/admin" replace />;
+    } else {
+        return <Navigate to="/analizador" replace />;
+    }
+};
+
+// 2. GUARDIÁN DE RUTAS PRIVADAS
+// Protege /admin y /analizador para que nadie entre sin token
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -14,55 +32,40 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     return children;
 };
 
-// --- 2. GUARDIÁN DE RUTAS PÚBLICAS ---
-// Si YA tienes token, no te deja ver el Login, te manda a la Home.
-const PublicRoute = ({ children }: { children: JSX.Element }) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-        return <Navigate to="/" replace />;
-    }
-    return children;
-};
-
-// --- 3. DISPATCHER (CONTROLADOR DE TRÁFICO) ---
-// Decide si vas al Admin o al Usuario según tu rol
-const RoleDispatcher = () => {
-    const roleId = localStorage.getItem("role_id");
-    
-    // Si role_id es "0" (string) mostramos el Dashboard Admin
-    if (roleId === "0") {
-        return <DashboardAdmin />;
-    } 
-    
-    // Si no, mostramos el Analizador (Usuario normal)
-    return <Analizador />;
-};
-
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         
-        {/* RUTA LOGIN (Pública) */}
-        <Route 
-            path="/login" 
-            element={
-                <PublicRoute>
-                    <Login />
-                </PublicRoute>
-            } 
-        />
+        {/* --- RUTA RAÍZ (localhost:5173) --- */}
+        {/* Usamos el componente RootRedirect para decidir */}
+        <Route path="/" element={<RootRedirect />} />
 
-        {/* RUTA PRINCIPAL (Privada) */}
-        {/* Aquí atrapamos la raíz "/" y cualquier sub-ruta */}
+        {/* --- LOGIN --- */}
+        <Route path="/login" element={<Login />} />
+
+        {/* --- RUTAS DEL ADMINISTRADOR --- */}
         <Route 
-            path="/*" 
+            path="/admin" 
             element={
                 <ProtectedRoute>
-                    <RoleDispatcher />
+                    <DashboardAdmin />
                 </ProtectedRoute>
             } 
         />
+
+        {/* --- RUTAS DEL USUARIO --- */}
+        <Route 
+            path="/analizador" 
+            element={
+                <ProtectedRoute>
+                    <Analizador />
+                </ProtectedRoute>
+            } 
+        />
+
+        {/* --- CUALQUIER OTRA COSA -> AL LOGIN --- */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
 
       </Routes>
     </BrowserRouter>
