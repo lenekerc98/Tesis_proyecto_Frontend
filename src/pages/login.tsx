@@ -41,7 +41,7 @@ export const Login = () => {
       const { access_token } = response.data;
       
       // 1. Guardamos el token
-      sessionStorage.setItem("token", access_token);
+      localStorage.setItem("token", access_token);
 
       // 2. Obtenemos datos del usuario inmediatamente
       try {
