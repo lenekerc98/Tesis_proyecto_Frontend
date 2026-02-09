@@ -2,13 +2,11 @@ import { useState, useEffect } from "react";
 import axiosClient from "../../api/axiosClient";
 import { ModalResultados } from "../../components/ModalResultados";
 
-// 1. DEFINIMOS QUE ESTE COMPONENTE RECIBE UNA FUNCIÓN DE NAVEGACIÓN
 interface ResumenProps {
     onNavigate: (vista: string) => void;
 }
 
-export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA PROP AQUÍ
-  // --- ESTADOS ---
+export const Resumen = ({ onNavigate }: ResumenProps) => {
   const [metricas, setMetricas] = useState({
     totalRegistros: 0,
     precisionPromedio: 0,
@@ -17,17 +15,25 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
     totalEspecies: 0
   });
   const [registros, setRegistros] = useState<any[]>([]);
+  
+  // --- NUEVOS MAPAS ---
   const [imagenesMap, setImagenesMap] = useState<Record<string, string>>({});
+  const [nombresMap, setNombresMap] = useState<Record<string, string>>({}); // <--- NUEVO: Para guardar nombres comunes
+
   const [previewImages, setPreviewImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [rol, setRol] = useState<string | null>(null);
 
-  // Estados para Modales
   const [showModal, setShowModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  
-  // Estado para la vista previa (Pantalla completa)
   const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
+
+  const limpiarNombre = (nombre: string) => nombre ? nombre.replace(/_/g, " ").toLowerCase().trim() : "";
+
+  const procesarUrlImagen = (url: string | undefined | null) => {
+      if (!url) return "";
+      return url; 
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,23 +51,35 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
             axiosClient.get("/inferencia/listar_aves")
         ]);
 
-        // --- PROCESAR CATÁLOGO ---
+        // --- 1. PROCESAR CATÁLOGO (FOTOS Y NOMBRES) ---
         const mapaFotos: Record<string, string> = {};
-        let conteoEspecies = 0;
+        const mapaNombres: Record<string, string> = {}; // <--- NUEVO MAPA
+
         if (Array.isArray(resAves.data)) {
-            conteoEspecies = resAves.data.length;
+            setPreviewImages(resAves.data.slice(0, 15));
+
             resAves.data.forEach((ave: any) => {
-                mapaFotos[ave.nombre_cientifico] = ave.imagen_url;
+                // 1. Mapa de Fotos
+                if (ave.imagen_url) {
+                    mapaFotos[ave.nombre_cientifico] = ave.imagen_url;
+                    mapaFotos[limpiarNombre(ave.nombre_cientifico)] = ave.imagen_url;
+                }
+                
+                // 2. Mapa de Nombres Comunes (Aquí está la magia)
+                if (ave.nombre) {
+                    mapaNombres[ave.nombre_cientifico] = ave.nombre;
+                    mapaNombres[limpiarNombre(ave.nombre_cientifico)] = ave.nombre;
+                }
             });
-            setPreviewImages(resAves.data.slice(0, 10));
         }
         setImagenesMap(mapaFotos);
+        setNombresMap(mapaNombres); // <--- GUARDAMOS EL MAPA
 
-        // --- PROCESAR HISTORIAL ---
-        const dataHist = Array.isArray(resHistorial.data) ? resHistorial.data : resHistorial.data.historial || [];
+        // --- 2. PROCESAR HISTORIAL ---
+        const dataHist = Array.isArray(resHistorial.data) ? resHistorial.data : [];
         setRegistros(dataHist);
 
-        // --- PROCESAR MÉTRICAS ---
+        // --- 3. MÉTRICAS ---
         let total = 0, promedio = 0, hoyCount = 0;
         if (dataHist.length > 0) {
             total = dataHist.length;
@@ -70,26 +88,32 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
             hoyCount = dataHist.filter((d: any) => new Date(d.fecha).toLocaleDateString() === hoy).length;
         }
 
-        // --- AVE MÁS COMÚN ---
+        // --- 4. AVE MÁS COMÚN ---
         let masComunNombre = "Ninguna", masComunCantidad = 0;
-        if (userRole === "0") {
-            if (resFrecuente.data.length > 0) {
-                masComunNombre = resFrecuente.data[0].prediccion_especie;
-                masComunCantidad = resFrecuente.data[0].cantidad;
-            }
-        } else {
-            if (resFrecuente.data.predicciones && resFrecuente.data.predicciones.length > 0) {
-                masComunNombre = resFrecuente.data.predicciones[0].prediccion_especie;
-                masComunCantidad = resFrecuente.data.predicciones[0].cantidad;
-            }
+        const frecData = resFrecuente.data;
+        
+        let cientificoTop = "";
+        if (Array.isArray(frecData) && frecData.length > 0) {
+             cientificoTop = frecData[0].prediccion_especie;
+             masComunCantidad = frecData[0].cantidad;
+        } else if (frecData.predicciones && frecData.predicciones.length > 0) {
+             cientificoTop = frecData.predicciones[0].prediccion_especie;
+             masComunCantidad = frecData.predicciones[0].cantidad;
+        }
+
+        // Intentamos traducir el nombre del Top 1
+        if (cientificoTop) {
+            // Si tenemos el nombre común en el mapa recién creado, lo usamos. Si no, formateamos el científico.
+            const nombreComunTop = mapaNombres[cientificoTop] || cientificoTop.replace(/_/g, " ");
+            masComunNombre = `${nombreComunTop} (${masComunCantidad})`;
         }
 
         setMetricas({
             totalRegistros: total,
             precisionPromedio: promedio,
-            aveMasComun: masComunNombre !== "Ninguna" ? `${masComunNombre.replace(/_/g, " ")} (${masComunCantidad})` : "Ninguna",
+            aveMasComun: masComunNombre,
             registrosHoy: hoyCount,
-            totalEspecies: conteoEspecies
+            totalEspecies: Array.isArray(resAves.data) ? resAves.data.length : 0
         });
 
       } catch (error) {
@@ -103,10 +127,19 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
 
   const formatearNombre = (nombre: string) => nombre ? nombre.replace(/_/g, " ") : "Desconocido";
 
+  // --- FUNCIÓN PARA OBTENER EL NOMBRE FINAL A MOSTRAR ---
+  const obtenerNombreAve = (cientifico: string) => {
+      // 1. Buscamos en el mapa de nombres comunes
+      if (nombresMap[cientifico]) return nombresMap[cientifico];
+      // 2. Buscamos por nombre limpio
+      const limpio = limpiarNombre(cientifico);
+      if (nombresMap[limpio]) return nombresMap[limpio];
+      // 3. Si no hay común, formateamos el científico
+      return formatearNombre(cientifico);
+  };
+
   const obtenerNombreUsuario = (reg: any) => {
-    if (reg.usuario) return reg.usuario;
-    if (reg.nombre_completo) return reg.nombre_completo;
-    if (reg.id_usuario) return `ID: ${reg.id_usuario}`;
+    if (reg.usuario && reg.usuario.trim() !== "") return reg.usuario;
     return "Anónimo";
   };
 
@@ -123,13 +156,14 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
   const abrirImagePreview = (url: string) => { if (url) setSelectedImagePreview(url); };
   const cerrarImagePreview = () => { setSelectedImagePreview(null); };
 
-  // --- 2. ADAPTADOR DE DATOS PARA EL MODAL ---
+  // --- DATOS PARA EL MODAL ---
   const datosParaModal = selectedItem ? {
       principal: {
-          nombre: formatearNombre(selectedItem.prediccion),
+          // AQUI USAMOS LA NUEVA LÓGICA DE NOMBRE
+          nombre: obtenerNombreAve(selectedItem.prediccion), 
           nombre_cientifico: selectedItem.prediccion,
           probabilidad: selectedItem.confianza,
-          url_imagen: imagenesMap[selectedItem.prediccion] 
+          url_imagen: procesarUrlImagen(selectedItem.url_imagen) || imagenesMap[selectedItem.prediccion]
       },
       lista: selectedItem.top_5 || []
   } : null;
@@ -142,6 +176,7 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
       {/* SECCIÓN 1: TARJETAS DE MÉTRICAS */}
       <h4 className="fw-bold mb-4 text-dark">Resumen de Actividad</h4>
       <div className="row row-cols-1 row-cols-md-2 row-cols-lg-5 g-3 mb-4">
+         {/* ... (Tarjetas de métricas igual que antes) ... */}
          <div className="col">
              <div className="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
                 <div className="d-flex align-items-center mb-2">
@@ -196,8 +231,6 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
         <div className="mb-5 animate__animated animate__fadeIn delay-1s">
             <div className="d-flex align-items-center justify-content-between mb-3">
                  <h5 className="fw-bold text-dark m-0">Explora el Catálogo</h5>
-                 
-                 {/* --- AQUÍ ESTÁ EL CAMBIO PARA NAVEGAR --- */}
                  <span 
                     className="text-primary small fw-bold" 
                     style={{ cursor: 'pointer', userSelect: 'none' }}
@@ -205,29 +238,44 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
                  >
                     Ver catálogo completo <i className="bi bi-arrow-right ms-1"></i>
                  </span>
-
             </div>
             <div className="d-flex gap-3 py-2" style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
-                {previewImages.map((ave, index) => (
-                <div key={index} className="position-relative flex-shrink-0 text-center" style={{ width: '110px' }}>
-                    <img
-                        src={ave.imagen_url}
-                        alt={ave.nombre_cientifico}
-                        className="rounded-4 shadow-sm border"
-                        style={{ width: '100%', height: '85px', objectFit: 'cover', cursor: 'pointer' }}
-                        crossOrigin="anonymous"
-                        onClick={() => abrirImagePreview(ave.imagen_url)}
-                    />
-                    <small className="d-block mt-2 text-muted text-truncate fst-italic" style={{fontSize: '0.7rem'}}>
-                        {formatearNombre(ave.nombre_cientifico)}
-                    </small>
-                </div>
-                ))}
+                {previewImages.map((ave, index) => {
+                    const imgUrl = procesarUrlImagen(ave.imagen_url);
+                    return (
+                        <div key={index} className="position-relative flex-shrink-0 text-center" style={{ width: '110px' }}>
+                            {imgUrl ? (
+                                <img
+                                    src={imgUrl}
+                                    alt={ave.nombre_cientifico}
+                                    className="rounded-4 shadow-sm border"
+                                    style={{ width: '100%', height: '85px', objectFit: 'cover', cursor: 'pointer' }}
+                                    referrerPolicy="no-referrer"
+                                    onClick={() => abrirImagePreview(imgUrl)}
+                                    onError={(e) => { 
+                                        e.currentTarget.style.display = 'none'; 
+                                        e.currentTarget.nextElementSibling?.classList.remove('d-none');
+                                    }}
+                                />
+                            ) : null}
+                            
+                            <div className={`d-flex align-items-center justify-content-center bg-light rounded-4 border ${imgUrl ? 'd-none' : ''}`} style={{ width: '100%', height: '85px' }}>
+                                <i className="bi bi-image text-muted opacity-25 fs-4"></i>
+                            </div>
+
+                            <small className="d-block mt-2 text-muted text-truncate fst-italic" style={{fontSize: '0.7rem'}}>
+                                {/* AQUI USAMOS EL NOMBRE COMUN SI EXISTE */}
+                                {ave.nombre || formatearNombre(ave.nombre_cientifico)}
+                            </small>
+                        </div>
+                    );
+                })}
+                
                 {metricas.totalEspecies > previewImages.length && (
                      <div 
                         className="flex-shrink-0 d-flex flex-column align-items-center justify-content-center bg-light rounded-4 border text-muted hover-effect" 
                         style={{ width: '110px', height: '85px', cursor: 'pointer' }}
-                        onClick={() => onNavigate('catalogo')} // También navegamos al hacer clic en el "+ más"
+                        onClick={() => onNavigate('catalogo')}
                      >
                         <span className="fw-bold fs-5">+{metricas.totalEspecies - previewImages.length}</span>
                         <small style={{fontSize: '0.7rem'}}>más</small>
@@ -253,7 +301,8 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
       ) : (
         <div className="row">
           {registros.map((reg, index) => {
-            const imagenUrl = imagenesMap[reg.prediccion];
+            const urlRaw = reg.url_imagen || imagenesMap[reg.prediccion] || imagenesMap[limpiarNombre(reg.prediccion)];
+            const imagenUrl = procesarUrlImagen(urlRaw);
 
             return (
               <div key={index} className="col-12 mb-2">
@@ -268,22 +317,30 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
                                 src={imagenUrl} 
                                 alt="Ave" 
                                 className="rounded-circle border border-2 border-white shadow-sm"
-                                style={{ width: '60px', height: '60px', objectFit: 'cover', cursor: 'pointer' }}
-                                crossOrigin="anonymous"
+                                style={{ width: '60px', height: '60px', objectFit: 'cover', cursor: 'pointer', backgroundColor: '#eee' }}
+                                referrerPolicy="no-referrer"
                                 onClick={() => abrirImagePreview(imagenUrl)}
+                                onError={(e) => { 
+                                    e.currentTarget.style.display = 'none'; 
+                                    e.currentTarget.nextElementSibling?.classList.remove('d-none');
+                                }}
                             />
-                        ) : (
-                            <div className="icon-circle-history bg-light rounded-circle p-3 d-flex justify-content-center align-items-center" style={{ width: '60px', height: '60px' }}>
-                                <i className="bi bi-bird text-success fs-4"></i>
-                            </div>
-                        )}
+                        ) : null}
+                        <div className={`bg-light rounded-circle p-3 d-flex justify-content-center align-items-center ${imagenUrl ? 'd-none' : ''}`} style={{ width: '60px', height: '60px' }}>
+                            <i className="bi bi-bird text-success fs-4"></i>
+                        </div>
                       </div>
 
                       <div>
-                        <h6 className="fw-bold mb-0 text-dark fst-italic text-capitalize">
-                          {formatearNombre(reg.prediccion)}
+                        {/* --- AQUÍ SE MUESTRA EL NOMBRE COMÚN (SI EXISTE) O EL CIENTIFICO --- */}
+                        <h6 className="fw-bold mb-0 text-dark text-capitalize">
+                          {obtenerNombreAve(reg.prediccion)}
                         </h6>
-                        <p className="mb-0 text-muted small mt-1">
+                        <small className="text-muted fst-italic d-block mb-1" style={{fontSize: '0.8rem'}}>
+                            {formatearNombre(reg.prediccion)} {/* Subtítulo con nombre científico */}
+                        </small>
+
+                        <p className="mb-0 text-muted small">
                           <i className="bi bi-calendar3 me-1"></i> 
                           {new Date(reg.fecha).toLocaleDateString()} 
                           <span className="mx-1">·</span> 
@@ -293,7 +350,7 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
                       </div>
                     </div>
 
-                    {/* DERECHA: BOTÓN Y DATOS */}
+                    {/* DERECHA */}
                     <div className="d-flex align-items-center gap-3 mt-2 mt-md-0">
                       {rol === "0" && (
                           <div className="text-end border-end pe-3 me-2 d-none d-md-block">
@@ -330,14 +387,13 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
               isOpen={true}
               onClose={cerrarModal}
               titulo="Detalle de Identificación"
-              // Al poner la condición arriba, quitamos el '?' y el error desaparece
               prediccionPrincipal={datosParaModal.principal} 
               listaPredicciones={datosParaModal.lista || []}
               onImageClick={abrirImagePreview}
           />
       )}
 
-      {/* MODAL DE VISTA PREVIA (FOTO PANTALLA COMPLETA) */}
+      {/* MODAL PREVIEW */}
       {selectedImagePreview && (
         <div 
             className="modal-overlay" 
@@ -348,35 +404,9 @@ export const Resumen = ({ onNavigate }: ResumenProps) => { // <--- RECIBIMOS LA 
                 display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh'
             }}
         >
-          <div 
-              className="position-relative animate__animated animate__zoomIn" 
-              style={{maxWidth: '90vw', maxHeight: '90vh'}} 
-              onClick={(e) => e.stopPropagation()} 
-          >
-            <button
-              className="btn btn-close btn-close-white position-absolute"
-              onClick={cerrarImagePreview}
-              style={{ 
-                  top: '-40px', 
-                  right: '-40px', 
-                  zIndex: 2010,
-                  filter: 'drop-shadow(0px 0px 5px rgba(0,0,0,0.5))',
-                  fontSize: '1.5rem'
-              }}
-            ></button>
-
-            <img
-              src={selectedImagePreview}
-              alt="Vista previa"
-              className="img-fluid rounded-3 shadow-lg"
-              style={{ 
-                  maxHeight: '85vh', 
-                  maxWidth: '85vw',
-                  objectFit: 'contain',
-                  border: '3px solid rgba(255,255,255,0.2)'
-              }}
-              crossOrigin="anonymous"
-            />
+          <div className="position-relative animate__animated animate__zoomIn" style={{maxWidth: '90vw', maxHeight: '90vh'}} onClick={(e) => e.stopPropagation()}>
+            <button className="btn btn-close btn-close-white position-absolute" onClick={cerrarImagePreview} style={{ top: '-40px', right: '-40px', zIndex: 2010, fontSize: '1.5rem' }}></button>
+            <img src={selectedImagePreview} alt="Vista previa" className="img-fluid rounded-3 shadow-lg" style={{ maxHeight: '85vh', maxWidth: '85vw', objectFit: 'contain' }} referrerPolicy="no-referrer" />
           </div>
         </div>
       )}

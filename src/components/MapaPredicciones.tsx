@@ -31,7 +31,7 @@ interface InferenciaHistorial {
     ubicacion: string;
     latitud: number | null;
     longitud: number | null;
-    usuario?: string; 
+    usuario: string; // Hacemos obligatorio que tenga un string (aunque sea "Anónimo")
     foto?: string;
     nombre_comun?: string;
 }
@@ -51,18 +51,13 @@ export const MapaPredicciones = () => {
     const [busqueda, setBusqueda] = useState("");
     const [limiteVisible, setLimiteVisible] = useState(20);
     
-    // NOTA: Ya no necesitamos 'isAdmin' para ocultar cosas, 
-    // porque queremos que todos vean todo.
-
+    // Coordenadas iniciales (Guayaquil/Cerro Blanco aprox)
     const centroInicial: [number, number] = [-2.1894, -79.8891]; 
 
     useEffect(() => {
         const cargarDatos = async () => {
             try {
-                // --- CAMBIO 1: ENDPOINT UNIFICADO ---
-                // Intentamos usar el endpoint de historial completo para todos.
-                // IMPORTANTE: Asegúrate que tu Backend permita a usuarios normales acceder a esta ruta.
-                // Si da error 403, necesitas crear una ruta pública en el backend como '/inferencia/global'
+                // 1. CARGAMOS HISTORIAL Y AVES
                 const endpointHistorial = '/admin/logs/historial'; 
 
                 const [resHistorial, resAves] = await Promise.all([
@@ -70,6 +65,7 @@ export const MapaPredicciones = () => {
                     axiosClient.get('/inferencia/listar_aves')
                 ]);
 
+                // 2. MAPEO DE AVES (Para tener nombres comunes y fotos)
                 const mapaAves: Record<string, AveInfo> = {};
                 resAves.data.forEach((ave: any) => {
                     mapaAves[ave.nombre_cientifico] = {
@@ -79,27 +75,34 @@ export const MapaPredicciones = () => {
                     };
                 });
 
+                // 3. PROCESAMIENTO DE HISTORIAL
                 const historialCompleto = resHistorial.data
                     .filter((item: any) => 
+                        // Filtramos solo los que tienen coordenadas válidas
                         item.latitud && item.longitud && 
                         item.latitud !== 0 && item.longitud !== 0
                     )
                     .map((item: any) => {
                         const infoExtra = mapaAves[item.prediccion];
                         
-                        // --- CAMBIO 2: LÓGICA DE NOMBRE SIMPLIFICADA ---
-                        // Usamos SIEMPRE lo que venga de la API. 
-                        // Solo si viene vacío ponemos "Anónimo".
-                        const nombreUsuarioMostrar = item.usuario || "Observador Anónimo";
+                        // --- CORRECCIÓN IMPORTANTE AQUÍ ---
+                        // Verificamos si 'item.usuario' existe y no es "Anónimo" (o string vacío)
+                        // Si tu backend manda "Anónimo" cuando no sabe quién es, esto lo respeta.
+                        // Si tu backend manda el nombre real, lo usamos.
+                        let nombreFinal = "Observador Anónimo";
+                        if (item.usuario && item.usuario.trim() !== "" && item.usuario !== "Anónimo") {
+                            nombreFinal = item.usuario;
+                        }
 
                         return {
                             ...item,
                             foto: item.url_imagen || (infoExtra ? infoExtra.imagen_url : null),
                             nombre_comun: infoExtra ? infoExtra.nombre_comun : item.prediccion,
-                            usuario: nombreUsuarioMostrar
+                            usuario: nombreFinal // Asignamos el nombre procesado
                         };
                     });
                 
+                // Ordenamos por fecha (más reciente primero)
                 historialCompleto.sort((a: any, b: any) => 
                     new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
                 );
@@ -107,8 +110,7 @@ export const MapaPredicciones = () => {
                 setPuntos(historialCompleto);
 
             } catch (error) {
-                console.error("Error cargando datos:", error);
-                // Tip: Si falla por permisos, podrías hacer un fallback aquí
+                console.error("Error cargando datos del mapa:", error);
             }
         };
         cargarDatos();
@@ -118,7 +120,7 @@ export const MapaPredicciones = () => {
         return puntos.filter(p => {
             const texto = busqueda.toLowerCase();
             return (
-                (p.usuario || "").toLowerCase().includes(texto) ||
+                p.usuario.toLowerCase().includes(texto) ||
                 (p.nombre_comun || "").toLowerCase().includes(texto) ||
                 (p.prediccion || "").toLowerCase().includes(texto)
             );
@@ -141,10 +143,11 @@ export const MapaPredicciones = () => {
     return (
         <div className="row g-3 h-100 animate__animated animate__fadeIn">
             
-            {/* --- MAPA --- */}
+            {/* --- COLUMNA IZQUIERDA: MAPA --- */}
             <div className="col-md-8 col-lg-9 h-100">
                 <div className="card border-0 shadow-sm rounded-4 overflow-hidden h-100 position-relative">
                     
+                    {/* BARRA DE BÚSQUEDA FLOTANTE SOBRE EL MAPA */}
                     <div className="position-absolute top-0 start-0 m-3 p-2 bg-white rounded-3 shadow-sm" style={{zIndex: 1000, maxWidth: '300px', width: '100%'}}>
                         <div className="input-group input-group-sm">
                             <span className="input-group-text bg-white border-0"><i className="bi bi-search text-muted"></i></span>
@@ -155,7 +158,7 @@ export const MapaPredicciones = () => {
                                 value={busqueda}
                                 onChange={(e) => {
                                     setBusqueda(e.target.value);
-                                    setLimiteVisible(20);
+                                    setLimiteVisible(20); // Reset al buscar
                                 }}
                             />
                         </div>
@@ -183,19 +186,19 @@ export const MapaPredicciones = () => {
                                                     alt="Ave" 
                                                     className="rounded-3 mb-2 shadow-sm"
                                                     style={{width: '100%', height: '120px', objectFit: 'cover'}}
-                                                    referrerPolicy="no-referrer"
                                                     onError={(e) => e.currentTarget.style.display = 'none'}
                                                 />
                                             )}
                                             <h6 className="fw-bold text-success mb-0 text-capitalize">{punto.nombre_comun}</h6>
                                             
-                                            {/* --- CAMBIO 3: SIEMPRE MOSTRAMOS EL USUARIO --- */}
-                                            <div className="badge bg-primary bg-opacity-10 text-primary mt-1 mb-1">
+                                            {/* AQUÍ MOSTRAMOS EL USUARIO */}
+                                            <div className="badge bg-primary bg-opacity-10 text-primary mt-2 mb-1 px-3 py-2 rounded-pill">
                                                 <i className="bi bi-person-fill me-1"></i>
                                                 {punto.usuario}
                                             </div>
                                             
                                             <div className="text-muted small mt-2 pt-2 border-top">
+                                                <i className="bi bi-calendar-event me-1"></i>
                                                 {new Date(punto.fecha).toLocaleDateString()}
                                             </div>
                                         </div>
@@ -207,7 +210,7 @@ export const MapaPredicciones = () => {
                 </div>
             </div>
 
-            {/* --- LISTA LATERAL --- */}
+            {/* --- COLUMNA DERECHA: LISTA LATERAL --- */}
             <div className="col-md-4 col-lg-3 h-100">
                 <div className="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column">
                     <div className="card-header bg-white py-3">
@@ -233,29 +236,28 @@ export const MapaPredicciones = () => {
                                                 {punto.foto ? (
                                                     <img 
                                                         src={punto.foto} 
-                                                        className="rounded-circle border" 
-                                                        style={{width: '45px', height: '45px', objectFit: 'cover'}} 
+                                                        className="rounded-circle border shadow-sm" 
+                                                        style={{width: '50px', height: '50px', objectFit: 'cover'}} 
                                                         alt="ave"
-                                                        referrerPolicy="no-referrer"
                                                     />
                                                 ) : (
-                                                    <div className="rounded-circle bg-light d-flex align-items-center justify-content-center border" style={{width: '45px', height: '45px'}}>
-                                                        <i className="bi bi-bird text-muted"></i>
+                                                    <div className="rounded-circle bg-light d-flex align-items-center justify-content-center border" style={{width: '50px', height: '50px'}}>
+                                                        <i className="bi bi-bird text-muted fs-4"></i>
                                                     </div>
                                                 )}
                                             </div>
                                             
                                             <div className="flex-grow-1 overflow-hidden text-start">
-                                                <h6 className="mb-0 fw-bold text-dark text-capitalize text-truncate" style={{fontSize: '0.9rem'}}>
+                                                <h6 className="mb-0 fw-bold text-dark text-capitalize text-truncate" style={{fontSize: '0.95rem'}}>
                                                     {punto.nombre_comun}
                                                 </h6>
                                                 
-                                                {/* --- CAMBIO 3: SIEMPRE MOSTRAMOS EL USUARIO --- */}
-                                                <small className="d-block text-primary text-truncate" style={{fontSize: '0.75rem'}}>
+                                                {/* NOMBRE DE USUARIO EN LA LISTA */}
+                                                <small className="d-block text-primary text-truncate mt-1" style={{fontSize: '0.8rem'}}>
                                                     <i className="bi bi-person me-1"></i>{punto.usuario}
                                                 </small>
 
-                                                <small className="text-muted d-block fst-italic text-truncate" style={{fontSize: '0.75rem'}}>
+                                                <small className="text-muted d-block fst-italic text-truncate mt-1" style={{fontSize: '0.75rem'}}>
                                                     {punto.prediccion}
                                                 </small>
                                             </div>
@@ -263,18 +265,21 @@ export const MapaPredicciones = () => {
                                     </button>
                                 ))
                             ) : (
-                                <div className="p-4 text-center text-muted">
-                                    Sin resultados para "{busqueda}"
+                                <div className="p-5 text-center text-muted">
+                                    <i className="bi bi-geo-alt fs-1 d-block mb-3 opacity-25"></i>
+                                    <p>No se encontraron resultados</p>
                                 </div>
                             )}
 
                             {puntosVisibles.length < puntosFiltrados.length && (
-                                <button 
-                                    className="btn btn-link text-decoration-none py-3 text-success fw-bold"
-                                    onClick={cargarMas}
-                                >
-                                    Cargar más...
-                                </button>
+                                <div className="p-2 text-center">
+                                    <button 
+                                        className="btn btn-sm btn-outline-success rounded-pill px-4"
+                                        onClick={cargarMas}
+                                    >
+                                        Cargar más...
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>

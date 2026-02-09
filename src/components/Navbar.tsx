@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import "./../App.css"; 
 
 interface NavbarProps {
   toggleSidebar: () => void;
   currentView: string;
-  userName: string; // Recibimos el nombre real
-  userRole: string; // "Administrador" o "Usuario"
+  userName: string;
+  userRole: string;
   onLogout: () => void;
   onNavigate: (view: string) => void;
 }
@@ -20,19 +21,20 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Formatear título de la vista (ej: "gestion_usuarios" -> "Gestion Usuarios")
   const formattedTitle = currentView.replace("admin_", "").replace(/_/g, " ");
 
   return (
-    <nav className="navbar navbar-light bg-white shadow-sm px-4 py-3 sticky-top" style={{zIndex: 1020}}>
+    <nav
+        className="navbar navbar-light bg-white shadow-sm px-4 py-2 sticky-top custom-navbar"
+        onClick={(e) => e.stopPropagation()}
+    >
       <div className="d-flex align-items-center justify-content-between w-100">
         
-        {/* IZQUIERDA: Botón Sidebar Móvil + Título */}
+        {/* IZQUIERDA */}
         <div className="d-flex align-items-center">
           <button 
             onClick={toggleSidebar} 
-            className="btn btn-success px-3 me-3 d-md-none" 
-            style={{background: "#798369", borderColor: "#798369"}}
+            className="btn btn-success px-3 me-3 d-md-none btn-sidebar-toggle"
           >
               <i className="bi bi-list fs-5"></i>
           </button>
@@ -41,61 +43,76 @@ export const Navbar: React.FC<NavbarProps> = ({
           </h5>
         </div>
 
-        {/* DERECHA: MENÚ DE PERFIL DESPLEGABLE */}
+        {/* DERECHA: PERFIL + DROPDOWN */}
         <div className="position-relative">
+            {/* TRIGGER (Lo que se hace clic) */}
             <div 
-                className="d-flex align-items-center bg-light border px-3 py-2 rounded-pill shadow-sm cursor-pointer user-select-none" 
+                className="profile-trigger d-flex align-items-center gap-2 p-1 rounded-pill pe-3 shadow-sm border bg-white user-select-none" 
+                style={{ cursor: 'pointer', transition: 'all 0.2s' }}
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                style={{cursor: 'pointer', transition: 'background 0.2s'}}
             >
-                {/* ICONO CON COLOR SEGÚN ROL */}
-                <div className={`rounded-circle d-flex justify-content-center align-items-center me-2 ${userRole === 'Administrador' ? 'bg-dark' : 'bg-secondary'} text-white`} style={{width:'35px', height:'35px'}}>
-                    <i className="bi bi-person-fill"></i>
+                {/* Avatar */}
+                <div className={`avatar-circle d-flex justify-content-center align-items-center text-white rounded-circle ${userRole === 'Administrador' ? 'bg-dark' : 'bg-secondary'}`} 
+                     style={{ width: '40px', height: '40px' }}>
+                    <i className="bi bi-person-fill fs-5"></i>
                 </div>
                 
-                {/* NOMBRE Y ROL DINÁMICOS */}
-                <div className="d-none d-sm-flex flex-column me-2 text-start" style={{lineHeight: '1.2'}}>
-                    <span className="fw-bold text-dark small text-truncate" style={{maxWidth: '150px'}}>
+                {/* Texto (Oculto en móviles muy pequeños) */}
+                <div className="d-none d-sm-flex flex-column text-start" style={{ lineHeight: '1.2' }}>
+                    <span className="fw-bold text-dark small text-truncate" style={{ maxWidth: '120px' }}>
                         {userName} 
                     </span>
-                    <span className="text-muted text-uppercase" style={{fontSize: '0.65rem'}}>
+                    <span className="text-muted" style={{ fontSize: '0.75rem' }}>
                         {userRole}
                     </span>
                 </div>
                 
-                <i className={`bi bi-chevron-down text-muted small transition-transform ${showProfileMenu ? 'rotate-180' : ''}`}></i>
+                {/* Flecha */}
+                <i className={`bi bi-chevron-down text-muted small ms-2 transition-icon ${showProfileMenu ? 'rotate-180' : ''}`}></i>
             </div>
 
-            {/* DROPDOWN MENU */}
+            {/* MENÚ FLOTANTE */}
             {showProfileMenu && (
                 <>
-                    {/* Overlay transparente para cerrar al hacer clic fuera */}
-                    <div 
-                        style={{position:'fixed', top:0, left:0, width:'100%', height:'100%', zIndex: 1021}} 
-                        onClick={() => setShowProfileMenu(false)}
+                    {/* TELÓN INVISIBLE (Para cerrar al hacer clic fuera) */}
+                    <div
+                        className="overlay-backdrop"
+                        style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 998 }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowProfileMenu(false);
+                        }}
                     ></div>
 
-                    <div className="position-absolute end-0 mt-2 bg-white rounded-4 shadow-lg border overflow-hidden animate__animated animate__fadeIn" style={{width: '240px', zIndex: 1022}}>
+                    {/* LA VENTANA DEL MENÚ */}
+                    <div className="position-absolute end-0 mt-3 bg-white rounded-4 shadow-lg border overflow-hidden profile-dropdown-menu animate__animated animate__fadeIn" 
+                         style={{ minWidth: '260px', zIndex: 999 }}>
+                        
+                        {/* Cabecera del menú */}
                         <div className="p-3 border-bottom bg-light">
-                            <p className="mb-0 fw-bold text-dark small">Mi Cuenta</p>
-                            <small className="text-muted" style={{fontSize:'0.7rem'}}>{userName}</small>
+                            <p className="mb-0 fw-bold text-dark">Mi Cuenta</p>
+                            <small className="text-muted text-truncate d-block">{userName}</small>
                         </div>
+
+                        {/* Opciones */}
                         <ul className="list-unstyled m-0 p-2">
                             <li>
                                 <button 
-                                    className="btn btn-white w-100 text-start px-3 py-2 text-dark rounded-3 mb-1" 
+                                    className="btn btn-white w-100 text-start px-3 py-2 text-dark rounded-3 mb-1 border-0 hover-bg-light d-flex align-items-center" 
                                     onClick={() => { onNavigate("perfil"); setShowProfileMenu(false); }}
                                 >
-                                    <i className="bi bi-person-gear me-3 text-info"></i> Mi Perfil
+                                    <i className="bi bi-person-gear me-3 text-primary fs-5"></i> 
+                                    <span>Mi Perfil</span>
                                 </button>
                             </li>
                             <li><hr className="dropdown-divider my-1 border-secondary border-opacity-10" /></li>
                             <li>
                                 <button 
-                                    className="btn btn-white w-100 text-start px-3 py-2 text-danger fw-bold rounded-3" 
+                                    className="btn btn-white w-100 text-start px-3 py-2 text-danger fw-bold rounded-3 border-0 hover-bg-light d-flex align-items-center" 
                                     onClick={onLogout}
                                 >
-                                    <i className="bi bi-box-arrow-right me-3"></i> Cerrar Sesión
+                                    <i className="bi bi-box-arrow-right me-3 fs-5"></i> 
+                                    <span>Cerrar Sesión</span>
                                 </button>
                             </li>
                         </ul>

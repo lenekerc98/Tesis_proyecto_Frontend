@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import aveIcon from "../assets/ave.png";
 
 interface SidebarProps {
@@ -11,126 +11,106 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentView, onNavigate, isAdmin }) => {
 
-  const handleNavigation = (e: React.MouseEvent, view: string) => {
-    e.preventDefault();
+  // Detectar móvil
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const handleNavigation = (view: string) => {
+    // 1. Cambiamos la vista
     onNavigate(view);
-    if (window.innerWidth < 768) setIsOpen(false);
+    
+    // 2. ¡AQUÍ ESTÁ LA MAGIA!
+    // Solo cerramos el menú si estamos en un celular (isMobile es true).
+    // Si estamos en PC, esto no se ejecuta y el menú sigue abierto.
+    if (isMobile) {
+        setIsOpen(false);
+    }
   };
 
-  return (
-    <nav id="sidebar" className={`d-flex flex-column h-100 ${isOpen ? "active" : ""}`}>
-      
-      {/* --- CABECERA (LOGO) --- */}
-      <div className="d-flex justify-content-center align-items-center p-3 border-bottom border-secondary border-opacity-25">
-        <div className="d-flex align-items-center gap-2">
-            <img 
-                src={aveIcon} 
-                alt="Logo BirdIA" 
-                style={{ height: '35px', width: 'auto' }} 
-            />
-            <span className="text-white fw-bold fs-4">
-                BirdIA
-            </span>
-        </div>
-        <button className="btn btn-sm btn-outline-light d-md-none" onClick={() => setIsOpen(false)}>
-          <i className="bi bi-x-lg"></i>
-        </button>
-      </div>
+  const sidebarStyle: React.CSSProperties = isMobile 
+    ? {
+        position: 'fixed', left: 0, top: 0,
+        width: isOpen ? '260px' : '0px', 
+        height: '100vh', zIndex: 1050,
+        backgroundColor: "#798369",
+        transition: 'width 0.3s ease',
+        overflowX: 'hidden', whiteSpace: "nowrap",
+        boxShadow: isOpen ? "4px 0 15px rgba(0,0,0,0.3)" : "none"
+      } 
+    : {
+        position: 'sticky', top: 0,
+        width: isOpen ? '260px' : '80px', 
+        height: '100vh', zIndex: 1040,
+        backgroundColor: "#798369",
+        transition: 'width 0.3s ease',
+        overflowX: 'hidden', whiteSpace: "nowrap"
+      };
 
-      {/* --- LISTA DE MENÚ (Con scroll si es necesario) --- */}
-      <div className="flex-grow-1 overflow-auto">
-          <ul className="list-unstyled p-3">
-            
-            {/* ================================================= */}
-            {/* 1. OPCIONES DE ADMINISTRADOR                      */}
-            {/* ================================================= */}
+  const getIcon = (view: string) => {
+    const map: any = {
+        analizador: "mic-fill", resumen: "speedometer2", mapas: "map-fill",
+        historial: "clock-history", catalogo: "images", gestion_usuarios: "people-fill",
+        admin_errores: "bug-fill", admin_sesiones: "shield-lock", admin_dashboard: "speedometer2"
+    };
+    return map[view] || "circle";
+  };
+
+  const formatName = (name: string) => name.replace("admin_", "").replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+
+  return (
+    <>
+        {isMobile && isOpen && (
+            <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1049}} onClick={() => setIsOpen(false)}></div>
+        )}
+
+        <nav className="d-flex flex-column flex-shrink-0 text-white" style={sidebarStyle}>
+        
+        <div className={`d-flex align-items-center p-3 ${isOpen ? "justify-content-between" : "justify-content-center"}`} style={{ minHeight: '70px' }}>
+            <div className="d-flex align-items-center gap-2 overflow-hidden fade-in" style={{ opacity: isOpen ? 1 : 0, width: isOpen ? 'auto' : 0, transition: 'opacity 0.2s' }}>
+                <img src={aveIcon} alt="Logo" style={{ height: '35px' }} />
+                <span className="fs-4 fw-bold">BirdIA</span>
+            </div>
+            <button className="btn btn-link text-white p-0 border-0" onClick={() => setIsOpen(!isOpen)} style={{ fontSize: "1.5rem", minWidth: '40px' }}>
+                {isMobile && isOpen ? <i className="bi bi-x-lg"></i> : <i className="bi bi-list"></i>}
+            </button>
+        </div>
+
+        <hr className="text-white opacity-25 my-1 mx-3" />
+
+        <div className="flex-grow-1 overflow-auto px-2 py-3">
+            <ul className="nav nav-pills flex-column mb-auto gap-2">
             {isAdmin && (
                 <>
-                    <li className="mb-2">
-                        <small className="text-uppercase text-muted fw-bold ms-2" style={{fontSize: '0.7rem'}}>Panel de Control</small>
-                    </li>
-                    <li>
-                        <a href="#" className={currentView === "admin_dashboard" ? "active" : ""} onClick={(e) => handleNavigation(e, "admin_dashboard")}>
-                            <i className="bi bi-speedometer2"></i> Resumen
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" className={currentView === "analizador" ? "active" : ""} onClick={(e) => handleNavigation(e, "analizador")}>
-                            <i className="bi bi-mic-fill"></i> Análisis de Audio
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" className={currentView === "gestion_usuarios" ? "active" : ""} onClick={(e) => handleNavigation(e, "gestion_usuarios")}>
-                            <i className="bi bi-people-fill"></i> Usuarios
-                        </a>
-                    </li>              
-                    <li>
-                        <a href="#" className={currentView === "mapas" ? "active" : ""} onClick={(e) => handleNavigation(e, "mapas")}>
-                            <i className="bi bi-map-fill"></i> Mapas Globales
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" className={currentView === "admin_sesiones" ? "active" : ""} onClick={(e) => handleNavigation(e, "admin_sesiones")}>
-                            <i className="bi bi-shield-lock"></i> Auditoría Sesiones
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" className={currentView === "admin_errores" ? "active" : ""} onClick={(e) => handleNavigation(e, "admin_errores")}>
-                            <i className="bi bi-bug-fill"></i> Logs de Errores
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" className={currentView === "admin_historial" ? "active" : ""} onClick={(e) => handleNavigation(e, "admin_historial")}>
-                            <i className="bi bi-clock-history"></i> Historial Global
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" className={currentView === "catalogo" ? "active" : ""} onClick={(e) => handleNavigation(e, "catalogo")}>
-                            <i className="bi bi-images"></i> Catálogo de Aves
-                        </a>
-                    </li>
+                    {isOpen && <li className="px-3 mt-2 mb-1 text-uppercase text-white-50 fw-bold" style={{fontSize:'0.75rem'}}>Admin</li>}
+                    {["admin_dashboard", "analizador", "gestion_usuarios", "mapas", "admin_sesiones", "admin_errores", "admin_historial", "catalogo"].map((view) => (
+                        <MenuLink key={view} view={view} currentView={currentView} isOpen={isOpen} onClick={() => handleNavigation(view)} icon={getIcon(view)} label={view === "analizador" ? "Análisis Audio" : formatName(view)} />
+                    ))}
                 </>
             )}
-
-            {/* ================================================= */}
-            {/* 2. OPCIONES DE USUARIO NORMAL                     */}
-            {/* ================================================= */}
             {!isAdmin && (
                 <>
-                    <li className="mb-2">
-                        <small className="text-uppercase text-muted fw-bold ms-2" style={{fontSize: '0.7rem'}}>Investigación</small>
-                    </li>
-                    <li>
-                        <a href="#" className={currentView === "analizador" ? "active" : ""} onClick={(e) => handleNavigation(e, "analizador")}>
-                            <i className="bi bi-mic-fill"></i> Análisis de Audio
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" className={currentView === "resumen" ? "active" : ""} onClick={(e) => handleNavigation(e, "resumen")}>
-                            <i className="bi bi-house-fill"></i> Resumen
-                        </a>
-                    </li>
-                    
-                    {/* AGREGADO: MAPAS PARA USUARIO */}
-                    <li>
-                        <a href="#" className={currentView === "mapas" ? "active" : ""} onClick={(e) => handleNavigation(e, "mapas")}>
-                            <i className="bi bi-map-fill"></i> Mis Mapas
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" className={currentView === "catalogo" ? "active" : ""} onClick={(e) => handleNavigation(e, "catalogo")}>
-                            <i className="bi bi-images"></i> Catálogo de Aves
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" className={currentView === "historial" ? "active" : ""} onClick={(e) => handleNavigation(e, "historial")}>
-                            <i className="bi bi-clock-history"></i> Historial
-                        </a>
-                    </li>
+                    {isOpen && <li className="px-3 mt-2 mb-1 text-uppercase text-white-50 fw-bold" style={{fontSize:'0.75rem'}}>Investigación</li>}
+                    {["analizador", "resumen", "mapas", "catalogo", "historial"].map((view) => (
+                        <MenuLink key={view} view={view} currentView={currentView} isOpen={isOpen} onClick={() => handleNavigation(view)} icon={getIcon(view)} label={view === "analizador" ? "Análisis Audio" : formatName(view)} />
+                    ))}
                 </>
             )}
-          </ul>
-      </div>
-    </nav>
+            </ul>
+        </div>
+        </nav>
+    </>
   );
 };
+
+const MenuLink = ({ view, currentView, isOpen, onClick, icon, label }: any) => (
+    <li className="nav-item">
+        <div onClick={onClick} className={`nav-link text-white d-flex align-items-center ${currentView === view ? "active bg-success shadow-sm" : ""}`} style={{ cursor: "pointer", justifyContent: isOpen ? "flex-start" : "center", padding: "12px", borderRadius: "10px", transition: "all 0.2s" }}>
+            <i className={`bi bi-${icon} fs-5`} style={{ minWidth: "25px", textAlign:"center" }}></i>
+            {isOpen && <span className="ms-3 fade-in" style={{ fontSize: '0.95rem' }}>{label}</span>}
+        </div>
+    </li>
+);

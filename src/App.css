@@ -1,4 +1,15 @@
-/* RESET GENERAL */
+/* =========================================
+   1. VARIABLES Y RESET GENERAL
+   ========================================= */
+:root {
+  --sidebar-bg: #798369;        
+  --sidebar-active: #18b29a;    
+  --sidebar-hover: #677059;     
+  --text-color: #ffffff;
+  --width-expanded: 260px;
+  --width-collapsed: 70px;
+}
+
 html, body, #root {
   width: 100%;
   height: 100%;
@@ -6,80 +17,233 @@ html, body, #root {
   padding: 0;
   overflow-x: hidden;
   font-family: 'Segoe UI', Roboto, sans-serif;
+  background: #fdfcf5; /* Fondo crema general */
 }
 
 #root { max-width: none; text-align: initial; }
 
+/* Contenedor Principal (Layout Flex) */
 .wrapper {
   display: flex;
   width: 100%;
   height: 100vh;
+  overflow: hidden; /* Evita doble scroll */
 }
 
-/* SIDEBAR */
+/* =========================================
+   2. NUEVO SIDEBAR (OSCURO Y COLAPSABLE)
+   ========================================= */
 #sidebar {
-  width: 280px;
-  min-width: 280px;
-  background: #798369;
-  color: #fff;
+  background-color: var(--sidebar-bg);
+  color: var(--text-color);
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s ease;
+  flex-shrink: 0; /* Evita que se aplaste */
+  transition: width 0.3s ease;
+  overflow-x: hidden;
+  z-index: 1040;
+  box-shadow: 4px 0 10px rgba(0,0,0,0.1);
 }
 
-#sidebar.active { transform: translateX(-100%); }
+/* Estado Expandido */
+#sidebar.expanded { width: var(--width-expanded); }
 
-#sidebar .logo {
-  padding: 30px 20px;
-  font-size: 1.5rem;
-  font-weight: bold;
-  text-align: center;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+/* Estado Colapsado (Iconos) */
+#sidebar.collapsed { width: var(--width-collapsed); }
+
+#sidebar.collapsed .logo-container {
+    display: none !important;
 }
 
-#sidebar ul { padding: 15px; list-style: none; }
+/* 2. Cuando está cerrado, centramos el botón de hamburguesa */
+#sidebar.collapsed .header-container {
+    justify-content: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
 
-#sidebar ul li a {
+/* 3. Asegurar que el texto aparezca cuando se expande */
+#sidebar.expanded .link-text,
+#sidebar.expanded .logo-text,
+#sidebar.expanded .section-title {
+    display: inline-block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: auto !important;
+}
+
+/* 2. Asegura que el color del texto sea visible */
+.link-text {
+    color: white; 
+}
+
+/* 3. Ajuste de seguridad para el logo */
+#sidebar.expanded .logo-container {
+    display: flex !important;
+}
+
+/* Enlaces del Sidebar */
+.nav-link-custom {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 15px;
-  margin-bottom: 8px;
-  border-radius: 10px;
-  color: rgba(255,255,255,0.8);
-  text-decoration: none;
-  transition: 0.2s;
+  padding: 12px 0; /* Ajustado para centrado */
+  min-height: 50px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  margin-bottom: 5px;
+  cursor: pointer;
+  overflow: hidden;
 }
 
-#sidebar ul li a:hover, #sidebar ul li a.active {
-  background: #18b29a;
-  color: #fff;
+/* Iconos del sidebar */
+.nav-link-custom i {
+  font-size: 1.2rem;
+  min-width: var(--width-collapsed); /* Ancho fijo para centrar icono */
+  text-align: center;
+  display: flex;
+  justify-content: center;
 }
 
-/* CONTENIDO PRINCIPAL */
+/* Texto del link */
+.nav-link-custom .link-text {
+  margin-left: 0;
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+
+.nav-link-custom:hover {
+  background-color: var(--sidebar-hover);
+  color: white;
+}
+
+.nav-link-custom.active {
+  background-color: var(--sidebar-active);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+/* Ocultar textos al colapsar */
+#sidebar.collapsed .link-text,
+#sidebar.collapsed .logo-text,
+#sidebar.collapsed .section-title {
+  opacity: 0;
+  display: none;
+}
+
+/* Botón Hamburguesa */
+.btn-hamburger {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  min-width: 35px;
+}
+.btn-hamburger:hover { transform: scale(1.1); color: var(--sidebar-active); }
+
+/* Responsive Móvil Sidebar */
+@media (max-width: 768px) {
+  #sidebar {
+    position: fixed;
+    height: 100%;
+    transform: translateX(-100%);
+    width: var(--width-expanded) !important; /* Siempre ancho completo al abrir en móvil */
+    transition: transform 0.3s ease;
+  }
+  #sidebar.expanded { transform: translateX(0); }
+  #sidebar.collapsed { transform: translateX(-100%); }
+}
+
+/* =========================================
+   3. CONTENIDO PRINCIPAL Y NAVBAR
+   ========================================= */
 #content {
   flex: 1;
-  background: #fdfcf5; /* Fondo crema Figma */;
+  background: #fdfcf5;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow-y: auto; /* Scroll solo en el contenido */
+  position: relative;
 }
 
-txtcolor {
-  color: #C0C0BC;
+/* --- NAVBAR --- */
+.custom-navbar {
+  position: sticky; 
+  top: 0;
+  right: 0;
+  z-index: 1020;
+  width: 100%;
+  background: white; /* Asegura fondo blanco al hacer scroll */
 }
 
-.audio-center {
-  flex: 1;
+/* Botón Toggle Sidebar (Móvil) */
+.btn-sidebar-toggle {
+  background-color: #798369 !important;
+  border-color: #798369 !important;
+}
+
+/* --- PERFIL DE USUARIO (PÍLDORA) --- */
+.profile-trigger {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 50px; /* Redondeado completo tipo píldora */
+  padding: 4px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  max-width: 250px; 
+}
+
+.profile-trigger:hover {
+  background-color: #ffffff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  border-color: #dee2e6;
+  transform: translateY(-1px);
+}
+
+.avatar-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  color: #C0C0BC;
+  background-color: #212529;
+  color: white;
+  font-size: .9rem;
 }
 
-/* BOTÓN MICRÓFONO */
+.user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.user-name { font-weight: 700; font-size: 0.9rem; color: #212529; }
+.user-role-text { font-size: 0.65rem; text-transform: uppercase; color: #6c757d; letter-spacing: 0.5px; }
+.chevron-icon { transition: transform 0.2s ease; }
+.chevron-icon.rotate-180 { transform: rotate(180deg); }
+
+/* Dropdown Menu */
+.overlay-backdrop {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 1021; background-color: transparent;
+}
+.profile-dropdown-menu { width: 240px; z-index: 1022; animation: fadeIn 0.2s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+
+/* =========================================
+   4. ANALIZADOR DE AUDIO
+   ========================================= */
 .mic-button {
   width: 208px;
   height: 208px;
@@ -129,8 +293,6 @@ margin-top: 100px;
 margin-bottom: 10px;
 color: #C0C0BC;
 padding-top: 20px;
-
-
 }
 
 .mic-button i { font-size: 70px; color: white; }
@@ -163,220 +325,12 @@ padding-top: 20px;
   color: #ffffff;
 }
 
-/* MODAL DE RESULTADOS */
-/* --- MODAL GENERAL --- */
-
-
-.modal-content-custom {
-    background: #ffffff;
-    padding: 2rem;
-    border-radius: 25px;
-    width: 95%;
-    max-width: 850px; /* Ancho mayor para escritorio */
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-    position: relative;
-    padding-top: 2rem;
-}
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1050;
-}
-.text-success {
-  color: #ff0000 !important;
-}
-
-.modal-box {
-  background: white;
-  width: 800px;
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,.2);
-}
-
-.modal-header-green {
-  background: #5f7f3f;
-  padding: 12px 20px;
-}
-
-.species-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #fff8e1;
-  border: 1px solid #e0d9b8;
-  margin: 20px;
-  padding: 15px;
-  border-radius: 6px;
-}
-
-.species-info {
-  flex: 1;
-  padding-right: 20px;
-}
-
-.species-image {
-  width: 180px;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.badge-identificada {
-  background: #f1f8e9;
-  color: #4a7c2f;
-  font-weight: bold;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-}
-
-
-/* --- TARJETAS DE RESULTADOS --- */
-.results-container-desktop {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.result-card {
-    background: #fdfdfd;
-    border: 1px solid #eee;
-    padding: 1.5rem;
-    border-radius: 18px;
-    transition: all 0.3s ease;
-}
-
-/* --- ESTILO RESALTADO PARA EL TOP 1 --- */
-.top-1-card {
-    border: 2px solid #28a745 !important;
-    background-color: #fafffa;
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.1);
-}
-
-.top-1-image-container {
-    width: 100%;
-    margin-bottom: 1.5rem;
-    position: relative;
-    text-align: center;
-}
-
-.top-1-image-container img {
-    width: 100%;
-    max-height: 400px; /* Imagen más alta en escritorio */
-    object-fit: cover;
-    border: 1px solid #ddd;
-}
-
-.badge-identificacion {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #28a745;
-    color: white;
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: bold;
-}
-
-
-/* Responsive para pantallas medianas */
-@media (max-width: 768px) {
-    .modal-content-custom {
-        max-width: 500px;
-        padding: 1.2rem;
-    }
-}
-
-/* --- AJUSTES DE TEXTO --- */
-.text-capitalize {
-    text-transform: capitalize;
-}
-
-.fs-5 {
-    font-size: 1.25rem;
-}
-
-/* Scrollbar personalizado para el modal */
-.modal-content-custom::-webkit-scrollbar {
-    width: 8px;
-}
-.modal-content-custom::-webkit-scrollbar-thumb {
-    background: #28a745;
-    border-radius: 10px;
-}
-
-/* ANIMACIONES */
-.animate-pulse {
-  animation: pulse-red 1.5s infinite;
-  background: #dc3545 !important;
-}
-
-@keyframes pulse-red {
-  0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
-  70% { box-shadow: 0 0 0 20px rgba(220, 53, 69, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
-}
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  #sidebar {
-    position: fixed;
-    height: 100%;
-    z-index: 1050;
-    transform: translateX(-100%);
-  }
-  #sidebar.active { transform: translateX(0); }
-}
-.bg-success-light { background-color: #e8f5e9; }
-.bg-info-light { background-color: #e3f2fd; }
-.bg-warning-light { background-color: #fff8e1; }
-.bg-primary-light { background-color: #eef2ff; }
-
-.rounded-4 { border-radius: 20px !important; }
-
-.animate__fadeIn {
-  animation: fadeIn 0.4s ease-in;
-}
-
-.avatar-circle {
-  width: 90px;
-  height: 90px;
-  background: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-.bg-success {
-  background-color: #2db596 !important; /* El verde de tu micro */
-}
-
-.form-control:disabled {
-  background-color: #f8f9fa !important;
-  color: #6c757d;
-  border: none;
-}
-
-.rounded-4 {
-  border-radius: 20px !important;
-}
 .bird-img {
   width: 100px;
   height: 100px;
   object-fit: contain;
   pointer-events: none;
+  background-color: #FFFFFF;
 }
 
 /* Animación de canto */
@@ -396,43 +350,267 @@ padding-top: 20px;
   }
 }
 
-
-/* --- MODAL PREVIEW IMAGEN EN GRANDE (Z-INDEX FIX) --- */
-.modal-preview-overlay {
-  background-color: rgba(0, 0, 0, 0.9);
-  z-index: 2000 !important; /* Prioridad máxima */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+/* Botón Micrófono */
+/* Nota: Usamos clases inline en el componente, pero estas base sirven de apoyo */
+.mic-button { /* Legacy support si aún se usa */
+  width: 200px; height: 200px; border-radius: 50%; border: none;
+  display: flex; align-items: center; justify-content: center;
 }
 
-.modal-preview-container {
+/* --- EFECTO SHAZAM (Ondas) --- */
+.shazam-effect {
   position: relative;
-  max-width: 90vw;
-  max-height: 90vh;
+  z-index: 1;
 }
 
-.btn-close-preview {
+/* Creamos dos circulos fantasmas detrás */
+.shazam-effect::before,
+.shazam-effect::after {
+  content: '';
   position: absolute;
-  top: -40px;
-  right: -40px;
-  z-index: 2010;
-  filter: drop-shadow(0px 0px 5px rgba(0,0,0,0.5));
-  font-size: 1.5rem;
-  background-color: transparent;
-  border: none;
-  color: white; /* Fallback */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  /* Color rojo semitransparente para la onda */
+  background-color: rgba(220, 53, 69, 0.5); 
+  z-index: -1; /* Detrás del botón */
+  animation: ripple 2s infinite linear;
 }
 
-.img-preview-full {
-  max-height: 85vh;
-  max-width: 85vw;
-  object-fit: contain;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+/* La segunda onda sale con retraso para que sea continuo */
+.shazam-effect::after {
+  animation-delay: 1s;
+}
+
+/* La animación de expansión */
+@keyframes ripple {
+  0% {
+    width: 100%;
+    height: 100%;
+    opacity: 0.8;
+  }
+  100% {
+    width: 220%; /* Se expande más del doble */
+    height: 220%;
+    opacity: 0; /* Se desvanece */
+  }
+}
+
+/* Botón Subir Archivo */
+.btn-subir-custom {
+  background-color: white;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  transition: all 0.3s ease;
+}
+.btn-subir-custom:hover {
+  background-color: #198754;
+  color: white !important;
+  border-color: #198754;
+  transform: translateY(-2px);
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+}
+.btn-subir-custom:hover i { color: white !important; }
+
+/* =========================================
+   5. MODALES Y RESULTADOS
+   ========================================= */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1050;
+}
+
+.modal-content-custom {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 25px;
+  width: 95%; max-width: 850px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+  position: relative;
+}
+
+/* Scrollbar Modal */
+.modal-content-custom::-webkit-scrollbar { width: 8px; }
+.modal-content-custom::-webkit-scrollbar-thumb { background: #28a745; border-radius: 10px; }
+
+/* Tarjetas de Resultados */
+.result-card {
+  background: #fdfdfd;
+  border: 1px solid #eee;
+  padding: 1.5rem;
+  border-radius: 18px;
+  transition: all 0.3s ease;
+}
+
+.top-1-card {
+  border: 2px solid #28a745 !important;
+  background-color: #fafffa;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.1);
+}
+
+.top-1-image-container img {
+  width: 100%; max-height: 400px; object-fit: cover;
+  border-radius: 12px; border: 1px solid #ddd;
+}
+
+.badge-identificacion {
+  position: absolute; bottom: 10px; left: 50%;
+  transform: translateX(-50%);
+  background: #28a745; color: white;
+  padding: 5px 15px; border-radius: 20px;
+  font-size: 0.8rem; font-weight: bold;
+}
+
+/* =========================================
+   6. UTILIDADES Y ANIMACIONES
+   ========================================= */
+.animate-pulse { animation: pulse-red 1.5s infinite; background: #dc3545 !important; }
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+  70% { box-shadow: 0 0 0 20px rgba(220, 53, 69, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+.animate__fadeIn { animation: fadeIn 0.4s ease-in; }
+
+.rounded-4 { border-radius: 20px !important; }
+
+/* Colores de fondo utilitarios */
+.bg-success-light { background-color: #e8f5e9; }
+.bg-info-light { background-color: #e3f2fd; }
+.bg-warning-light { background-color: #fff8e1; }
+.bg-primary-light { background-color: #eef2ff; }
+
+/* Responsive General */
+@media (max-width: 768px) {
+  .modal-content-custom { max-width: 500px; padding: 1.2rem; }
+}
+
+.fade-in {
+    animation: fadeInText 0.3s ease-in forwards;
+}
+
+@keyframes fadeInText {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* Color activo personalizado (Verde BirdIA) */
+.nav-pills .nav-link.active.bg-success {
+    background-color: #18b29a !important; /* Tu verde agua */
+}
+
+.nav-link:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* =========================================================================
+   7. CORRECCIONES LAYOUT ANALIZADOR (PARA QUITAR SCROLL Y AJUSTAR LAPTOP)
+   ========================================================================= */
+
+/* 1. Contenedor Maestro: Elimina el scroll y centra todo */
+.analizador-layout {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centra verticalmente */
+    align-items: center;     /* Centra horizontalmente */
+    height: 100%;            /* Ocupa todo el alto disponible */
+    width: 100%;
+    overflow: hidden;        /* ¡ADIÓS SCROLL! */
+    padding: 1rem;
+}
+
+/* 2. Espacios controlados */
+.analizador-header {
+    margin-bottom: 2rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.analizador-mic-area {
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0; 
+}
+
+/* 3. CLASE NUEVA PARA EL BOTÓN (Limpia) */
+.mic-button-custom {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+}
+
+.mic-button-custom.recording { background-color: #dc3545; }
+.mic-button-custom.idle { background-color: #2cba93; }
+
+.mic-icon-img {
+    width: 90px;
+    filter: brightness(0) invert(1);
+    pointer-events: none;
+    max-width: 100%;
+}
+
+/* 4. MEDIA QUERY MAGICA: Ajuste automático para pantallas pequeñas/laptops */
+@media (max-height: 750px) {
+    /* Reducimos espacios */
+    .analizador-header { margin-bottom: 0.5rem; }
+    .analizador-mic-area { margin-bottom: 1rem; }
+    
+    /* Achicamos el texto */
+    .analizador-header h1 { font-size: 2rem !important; }
+    
+    /* Achicamos el botón automáticamente */
+    .mic-button-custom { 
+        width: 160px !important; 
+        height: 160px !important; 
+    }
+    .mic-icon-img { width: 70px !important; }
+}
+
+/* --- ESTILOS DEL NAVBAR Y PERFIL --- */
+
+/* Efecto hover en el disparador del perfil */
+.profile-trigger:hover {
+  background-color: #f8f9fa !important; /* Gris muy clarito */
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+}
+
+/* Rotación suave de la flechita */
+.transition-icon {
+  transition: transform 0.2s ease;
+}
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Animación de entrada del menú */
+.profile-dropdown-menu {
+  animation-duration: 0.2s; /* Más rápido que el default */
+  border: 1px solid rgba(0,0,0,0.08); /* Borde sutil */
+}
+
+/* Efecto hover en los botones del menú */
+.hover-bg-light:hover {
+  background-color: #f1f3f5; /* Color al pasar el mouse por las opciones */
+}
+
+/* Ajuste del avatar */
+.avatar-circle {
+  flex-shrink: 0; /* Que no se aplaste */
 }
