@@ -132,12 +132,11 @@ export const ModalEditarUsuario: React.FC<ModalProps> = ({ isOpen, onClose, user
                     </div>
 
                     <div className="mb-4">
-                        <div className="form-check form-switch p-3 border rounded-3 d-flex align-items-center gap-2">
+                        <div className="form-check p-3 border rounded-3 d-flex align-items-center gap-2">
                             <input
-                                className="form-check-input m-0"
+                                className="form-check-input m-0 fs-4"
                                 type="checkbox"
-                                role="switch"
-                                style={{ width: '3em', height: '1.5em', cursor: 'pointer' }}
+                                style={{ cursor: 'pointer' }}
                                 defaultChecked={user.usuario_activo}
                                 ref={activoRef}
                             />

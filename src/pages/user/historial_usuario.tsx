@@ -37,7 +37,11 @@ export const Historial = () => {
 
         // 3. PROCESAR HISTORIAL
         // Aseguramos que sea un array, dependiendo de cómo responda tu API
-        const dataHist = Array.isArray(resHistorial.data) ? resHistorial.data : resHistorial.data.historial || [];
+        let dataHist = Array.isArray(resHistorial.data) ? resHistorial.data : resHistorial.data.historial || [];
+
+        // FILTRO VISUAL: Ocultamos "Desconocido"
+        dataHist = dataHist.filter((item: any) => item.prediccion !== "Desconocido");
+
         setRegistros(dataHist);
 
       } catch (error) {

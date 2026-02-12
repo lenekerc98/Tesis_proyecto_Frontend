@@ -57,13 +57,26 @@ export const MapaPredicciones = () => {
     useEffect(() => {
         const cargarDatos = async () => {
             try {
-                // 1. CARGAMOS HISTORIAL Y AVES
-                const endpointHistorial = '/admin/logs/historial';
+                // 1. CARGAMOS HISTORIAL Y AVES (SEGÚN ROL)
+                const roleId = localStorage.getItem("role_id");
+                const isAdmin = roleId === "0";
+
+                // Si es admin ve todo, si es usuario ve solo lo suyo
+                const endpointHistorial = isAdmin ? '/admin/logs/historial' : '/inferencia/historial';
 
                 const [resHistorial, resAves] = await Promise.all([
                     axiosClient.get(endpointHistorial),
                     axiosClient.get('/inferencia/listar_aves')
                 ]);
+
+                // Adaptamos la data porque el endpoint de usuario puede devolver { historial: [...] }
+                // Mientras que el de admin devuelve [...] directamente
+                let rawData = [];
+                if (Array.isArray(resHistorial.data)) {
+                    rawData = resHistorial.data;
+                } else if (resHistorial.data && Array.isArray(resHistorial.data.historial)) {
+                    rawData = resHistorial.data.historial;
+                }
 
                 // 2. MAPEO DE AVES (Para tener nombres comunes y fotos)
                 const mapaAves: Record<string, AveInfo> = {};
@@ -76,11 +89,12 @@ export const MapaPredicciones = () => {
                 });
 
                 // 3. PROCESAMIENTO DE HISTORIAL
-                const historialCompleto = resHistorial.data
+                const historialCompleto = rawData
                     .filter((item: any) =>
-                        // Filtramos solo los que tienen coordenadas válidas
+                        // Filtramos solo los que tienen coordenadas válidas Y predicción conocida
                         item.latitud && item.longitud &&
-                        item.latitud !== 0 && item.longitud !== 0
+                        item.latitud !== 0 && item.longitud !== 0 &&
+                        item.prediccion !== "Desconocido"
                     )
                     .map((item: any) => {
                         const infoExtra = mapaAves[item.prediccion];

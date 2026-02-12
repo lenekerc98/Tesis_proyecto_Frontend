@@ -12,17 +12,24 @@ export const Login = () => {
   const [nombre, setNombre] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null); // Estado para el error
+  const [showSuccessModal, setShowSuccessModal] = useState(false); // Estado para el modal de éxito
+  const [showPassword, setShowPassword] = useState(false); // Estado para ver password
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setErrorMsg(null); // Limpiar error previo
+    setErrorMsg(null);
+    setShowSuccessModal(false);
     try {
       await axiosclient.post("/usuarios/registro", {
         email, password, nombre_completo: nombre, role: "usuario"
       });
-      alert("Cuenta creada con éxito. Ahora inicia sesión.");
+      setShowSuccessModal(true);
       setIsLogin(true);
+      // Limpiar campos del formulario
+      setEmail("");
+      setPassword("");
+      setNombre("");
     } catch (error) {
       console.error(error);
       setErrorMsg("Error al registrarse. Verifica los datos o intenta con otro correo.");
@@ -34,7 +41,8 @@ export const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setErrorMsg(null); // Limpiar error previo
+    setErrorMsg(null);
+    setShowSuccessModal(false);
     try {
       const params = new URLSearchParams();
       params.append("username", email);
@@ -137,8 +145,24 @@ export const Login = () => {
           </div>
           <div className="mb-4">
             <label className="form-label fw-bold small text-secondary">Contraseña</label>
-            <input type="password" className="form-control rounded-4 py-2 bg-light border-0"
-              value={password} onChange={(e) => { setPassword(e.target.value); setErrorMsg(null); }} required placeholder="Ingrese su contraseña." />
+            <div className="input-group">
+              <input
+                type={showPassword ? "text" : "password"}
+                className="form-control rounded-start-4 py-2 bg-light border-0"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setErrorMsg(null); }}
+                required
+                placeholder="Ingrese su contraseña."
+              />
+              <button
+                className="btn btn-light border-0 rounded-end-4 px-3"
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ backgroundColor: "rgba(248, 249, 250, 1)" }}
+              >
+                <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"} text-secondary`}></i>
+              </button>
+            </div>
           </div>
           <button type="submit" disabled={loading} className="btn btn-success w-100 py-2 fw-bold rounded-pill shadow-sm hover-scale">
             {loading ? "Procesando..." : (isLogin ? "Iniciar Sesión" : "Registrarse")}
@@ -146,12 +170,42 @@ export const Login = () => {
         </form>
 
         <div className="mt-4 text-center border-top pt-3">
-          <button className="btn btn-link text-decoration-none text-muted small" onClick={() => { setIsLogin(!isLogin); setErrorMsg(null); }}>
+          <button className="btn btn-link text-decoration-none text-muted small" onClick={() => { setIsLogin(!isLogin); setErrorMsg(null); setShowSuccessModal(false); }}>
             {isLogin ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
             <span className="text-success fw-bold">{isLogin ? "Regístrate aquí" : "Inicia sesión"}</span>
           </button>
         </div>
       </div>
+
+      {/* MODAL DE ÉXITO BOOTSTRAP */}
+      {showSuccessModal && (
+        <>
+          <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1} role="dialog">
+            <div className="modal-dialog modal-dialog-centered" role="document">
+              <div className="modal-content border-0 shadow-lg animate__animated animate__zoomIn" style={{ borderRadius: "24px" }}>
+                <div className="modal-body text-center p-5">
+                  <div className="mb-4 text-success">
+                    <i className="bi bi-check-circle-fill" style={{ fontSize: "4rem" }}></i>
+                  </div>
+                  <h2 className="fw-bold mb-3">¡Cuenta Creada!</h2>
+                  <p className="text-muted mb-4">
+                    Tu registro ha sido exitoso. Ahora puedes iniciar sesión con tus credenciales.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-success w-100 py-2 fw-bold rounded-pill"
+                    onClick={() => setShowSuccessModal(false)}
+                  >
+                    Entendido
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Backdrop manually for Bootstrap look */}
+          <div className="modal-backdrop fade show"></div>
+        </>
+      )}
     </div>
   );
 };
