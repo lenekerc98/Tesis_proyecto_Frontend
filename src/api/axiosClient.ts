@@ -28,6 +28,12 @@ axiosClient.interceptors.response.use(
   },
   (error) => {
     if (error.response && error.response.status === 401) {
+      // EVITAR REDIRECT SI ES ERROR DE LOGIN (CREDENCIALES INCORRECTAS)
+      // Si la URL termina en /login o contiene login, dejamos que el componente maneje el error
+      if (error.config.url && error.config.url.includes("/login")) {
+        return Promise.reject(error);
+      }
+
       localStorage.removeItem("token");
       localStorage.removeItem("role_id");
       localStorage.removeItem("user_data");
