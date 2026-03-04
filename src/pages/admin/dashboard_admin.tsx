@@ -55,6 +55,7 @@ export const DashboardAdmin = () => {
 
     // --- ESTADOS PARA EL ANALIZADOR (Microfono) ---
     const [resultado, setResultado] = useState<any>(null);
+    const [urlAudioInferencia, setUrlAudioInferencia] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [showNoBirdModal, setShowNoBirdModal] = useState(false);
@@ -183,6 +184,7 @@ export const DashboardAdmin = () => {
             ) {
                 setShowNoBirdModal(true);
             } else {
+                setUrlAudioInferencia(URL.createObjectURL(archivoParaEnviar));
                 setResultado(data);
                 setShowModal(true);
             }
@@ -475,7 +477,8 @@ export const DashboardAdmin = () => {
                         nombre: infoAvesMap[resultado.prediccion_principal.especie]?.nombre || formatearTexto(resultado.prediccion_principal.especie),
                         nombre_cientifico: resultado.prediccion_principal.especie,
                         probabilidad: resultado.prediccion_principal.probabilidad,
-                        url_imagen: resultado.prediccion_principal.url_imagen || infoAvesMap[resultado.prediccion_principal.especie]?.url
+                        url_imagen: resultado.prediccion_principal.url_imagen || infoAvesMap[resultado.prediccion_principal.especie]?.url,
+                        url_audio_inferencia: urlAudioInferencia
                     }}
                     listaPredicciones={resultado.top_5_predicciones || []}
                     botonAccion={
