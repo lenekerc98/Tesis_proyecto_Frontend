@@ -176,14 +176,7 @@ export const ModalResultados: React.FC<Props> = ({
                       <div className="mb-2">
                         <span className="badge bg-primary mb-1 me-2"><i className="bi bi-mic-fill me-1"></i>{modoHistorial ? "Grabación Original" : "Audio Analizado"}</span>
                         {prediccionPrincipal.archivo && <small className="text-muted">{prediccionPrincipal.archivo}</small>}
-                        <audio src={prediccionPrincipal.url_audio_inferencia} controls className="w-100 shadow-sm rounded-pill mt-1" style={{ height: '40px', outline: 'none' }} />
-                      </div>
-                    )}
-
-                    {prediccionPrincipal.url_audio && (
-                      <div className="mb-3">
-                        <span className="badge bg-secondary mb-1"><i className="bi bi-play-circle me-1"></i>Canto de referencia</span>
-                        <audio src={prediccionPrincipal.url_audio} controls className="w-100 shadow-sm rounded-pill" style={{ height: '40px', outline: 'none' }} />
+                        <audio src={prediccionPrincipal.url_audio_inferencia} controls className="w-100 shadow-sm rounded-pill mt-1" style={{ height: '35px', outline: 'none' }} />
                       </div>
                     )}
 

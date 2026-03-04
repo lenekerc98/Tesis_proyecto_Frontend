@@ -274,7 +274,6 @@ export const Analizador = () => {
             nombre_cientifico: resultado.prediccion_principal.especie,
             probabilidad: resultado.prediccion_principal.probabilidad,
             url_imagen: resultado.prediccion_principal.url_imagen || infoAvesMap[resultado.prediccion_principal.especie]?.url,
-            url_audio: infoAvesMap[resultado.prediccion_principal.especie]?.audio_url,
             url_audio_inferencia: urlAudioInferencia,
             log_id: resultado.prediccion_principal.log_id || resultado.log_id,
             archivo: resultado.prediccion_principal.archivo
