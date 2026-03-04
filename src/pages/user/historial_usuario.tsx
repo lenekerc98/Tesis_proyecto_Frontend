@@ -5,7 +5,7 @@ import { ModalResultados } from "../../components/ModalResultados";
 export const Historial = () => {
   // --- ESTADOS ---
   const [registros, setRegistros] = useState<any[]>([]);
-  const [imagenesMap, setImagenesMap] = useState<Record<string, string>>({});
+  const [imagenesMap, setImagenesMap] = useState<Record<string, { url: string; audio_url?: string }>>({});
   const [loading, setLoading] = useState(true);
 
   // Estados para Modales
@@ -26,11 +26,14 @@ export const Historial = () => {
           axiosClient.get("/inferencia/listar_aves")
         ]);
 
-        // 2. PROCESAR MAPA DE FOTOS (Para mostrar la foto bonita del ave)
-        const mapaFotos: Record<string, string> = {};
+        // 2. PROCESAR MAPA DE FOTOS (Para mostrar la foto bonita del ave y el audio)
+        const mapaFotos: Record<string, { url: string; audio_url?: string }> = {};
         if (Array.isArray(resAves.data)) {
           resAves.data.forEach((ave: any) => {
-            mapaFotos[ave.nombre_cientifico] = ave.imagen_url;
+            mapaFotos[ave.nombre_cientifico] = {
+              url: ave.imagen_url,
+              audio_url: ave.audio_url
+            };
           });
         }
         setImagenesMap(mapaFotos);
@@ -75,9 +78,14 @@ export const Historial = () => {
       nombre: formatearNombre(selectedItem.prediccion),
       nombre_cientifico: selectedItem.prediccion,
       probabilidad: selectedItem.confianza,
-      url_imagen: imagenesMap[selectedItem.prediccion]
+      url_imagen: imagenesMap[selectedItem.prediccion]?.url,
+      url_audio: imagenesMap[selectedItem.prediccion]?.audio_url,
+      url_audio_inferencia: selectedItem.url_grabacion,
+      archivo: selectedItem.url_grabacion ? selectedItem.url_grabacion.split('/').pop() : 'Grabación',
+      log_id: selectedItem.log_id
     },
-    lista: selectedItem.top_5 || []
+    lista: selectedItem.top_5 || [],
+    especieUsuarioGuardada: selectedItem.especie_usuario
   } : null;
 
   if (loading) return <div className="p-5 text-center"><div className="spinner-border text-success"></div></div>;
@@ -102,7 +110,7 @@ export const Historial = () => {
       ) : (
         <div className="d-flex flex-column gap-3">
           {registros.map((reg, index) => {
-            const imagenUrl = imagenesMap[reg.prediccion];
+            const imagenUrl = imagenesMap[reg.prediccion]?.url;
 
             return (
               <div key={index} className="card border-0 shadow-sm rounded-4 p-2 bg-white history-card border-start border-success border-4">
@@ -181,6 +189,9 @@ export const Historial = () => {
           prediccionPrincipal={datosParaModal.principal}
           listaPredicciones={datosParaModal.lista || []}
           onImageClick={abrirImagePreview}
+          modoHistorial={true}
+          especieUsuarioGuardada={datosParaModal.especieUsuarioGuardada}
+          infoAvesMap={imagenesMap as any} // pasamos vacio o mapeado si se necesita (aunque modo historial no lo usa para deshabilitados) // Mejor pasamos el mapa si está disponible
         />
       )}
 

@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import axiosClient from "../../api/axiosClient";
 import { ModalResultados } from "../../components/ModalResultados";
 
-// Interfaz para saber qué guardamos en el mapa
 interface InfoAve {
   url: string;
   nombreComun: string;
+  audio_url?: string;
 }
 
 export const Historial_admin = () => {
@@ -43,7 +43,8 @@ export const Historial_admin = () => {
             const clave = normalizar(ave.nombre_cientifico);
             mapaInfo[clave] = {
               url: ave.imagen_url,
-              nombreComun: ave.nombre
+              nombreComun: ave.nombre,
+              audio_url: ave.audio_url
             };
           });
         }
@@ -225,9 +226,14 @@ export const Historial_admin = () => {
             nombre: infoAvesMap[normalizar(selectedItem.prediccion)]?.nombreComun || formatearTexto(selectedItem.prediccion),
             nombre_cientifico: selectedItem.prediccion,
             probabilidad: selectedItem.confianza,
-            url_imagen: infoAvesMap[normalizar(selectedItem.prediccion)]?.url
+            url_imagen: infoAvesMap[normalizar(selectedItem.prediccion)]?.url,
+            url_audio: infoAvesMap[normalizar(selectedItem.prediccion)]?.audio_url,
+            url_audio_inferencia: selectedItem.url_grabacion,
+            archivo: selectedItem.url_grabacion ? selectedItem.url_grabacion.split('/').pop() : 'Grabación'
           }}
           listaPredicciones={selectedItem.top_5 || []}
+          modoHistorial={true}
+          especieUsuarioGuardada={selectedItem.especie_usuario}
         />
       )}
 

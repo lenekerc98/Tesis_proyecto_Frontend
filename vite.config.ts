@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -8,11 +9,12 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      basicSsl(),
       VitePWA({
         registerType: "autoUpdate",
         // 1. AGREGAMOS "ave.png" AQUÍ para que se guarde en caché offline
         includeAssets: ["ave.png"],
-        
+
         manifest: {
           name: "BirdIA - Identificador de Aves",
           short_name: "BirdIA",
@@ -21,7 +23,7 @@ export default defineConfig(({ mode }) => {
           background_color: "#ffffff",
           display: "standalone",
           start_url: "/",
-          
+
           // 2. CONFIGURACIÓN DE ICONOS APUNTANDO A "ave.png"
           icons: [
             {

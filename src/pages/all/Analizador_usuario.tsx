@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axiosClient from "../../api/axiosClient";
+import Swal from 'sweetalert2';
 import '../../App.css';
 
 // --- COMPONENTES IMPORTS ---
@@ -22,11 +23,12 @@ export const Analizador = () => {
 
   // --- ESTADOS DE DATOS ---
   const [resultado, setResultado] = useState<any>(null);
+  const [urlAudioInferencia, setUrlAudioInferencia] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showNoBirdModal, setShowNoBirdModal] = useState(false); // Estado para modal de "No detectado"
   const [analizadorKey, setAnalizadorKey] = useState(0); // Clave para reiniciar el componente analizador
-  const [infoAvesMap, setInfoAvesMap] = useState<Record<string, { nombre: string; url: string }>>({});
+  const [infoAvesMap, setInfoAvesMap] = useState<Record<string, { nombre: string; url: string; audio_url?: string }>>({});
 
   // --- ESTADOS DE GEOLOCALIZACIÓN ---
   const [latitud, setLatitud] = useState<number | null>(null);
@@ -56,7 +58,8 @@ export const Analizador = () => {
           resAves.data.forEach((ave: any) => {
             mapa[ave.nombre_cientifico] = {
               nombre: ave.nombre,
-              url: ave.imagen_url
+              url: ave.imagen_url,
+              audio_url: ave.audio_url
             };
           });
         }
@@ -125,7 +128,12 @@ export const Analizador = () => {
     }
 
     if (!archivoParaEnviar) {
-      alert("No hay audio seleccionado o grabado.");
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'No hay audio seleccionado o grabado.',
+        confirmButtonColor: '#2cba93'
+      });
       return;
     }
 
@@ -162,6 +170,7 @@ export const Analizador = () => {
       ) {
         setShowNoBirdModal(true);
       } else {
+        setUrlAudioInferencia(URL.createObjectURL(archivoParaEnviar));
         setResultado(data);
         setShowModal(true); // Abrimos el modal de resultados EXITOSOS
       }
@@ -169,7 +178,12 @@ export const Analizador = () => {
     } catch (error: any) {
       console.error(error);
       const msg = error.response?.data?.detail || "Error al procesar el audio. Revisa tu conexión.";
-      alert(msg);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de Inferencia',
+        text: msg,
+        confirmButtonColor: '#2cba93'
+      });
     } finally {
       setLoading(false);
     }
@@ -259,16 +273,63 @@ export const Analizador = () => {
             nombre: infoAvesMap[resultado.prediccion_principal.especie]?.nombre || formatearTexto(resultado.prediccion_principal.especie),
             nombre_cientifico: resultado.prediccion_principal.especie,
             probabilidad: resultado.prediccion_principal.probabilidad,
-            url_imagen: resultado.prediccion_principal.url_imagen || infoAvesMap[resultado.prediccion_principal.especie]?.url
+            url_imagen: resultado.prediccion_principal.url_imagen || infoAvesMap[resultado.prediccion_principal.especie]?.url,
+            url_audio: infoAvesMap[resultado.prediccion_principal.especie]?.audio_url,
+            url_audio_inferencia: urlAudioInferencia,
+            log_id: resultado.prediccion_principal.log_id || resultado.log_id,
+            archivo: resultado.prediccion_principal.archivo
           }}
 
           listaPredicciones={resultado.top_5_predicciones || []}
 
           botonAccion={
-            <button className="btn btn-success rounded-pill px-4 fw-bold shadow-sm" onClick={handleReset}>
-              <i className="bi bi-mic me-2"></i>Nueva Captura
+            <button className="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm" onClick={handleReset}>
+              <i className="bi bi-x-circle me-2"></i>Cerrar sin guardar
             </button>
           }
+          infoAvesMap={infoAvesMap}
+          onGuardarEspecie={async (logId, especieConfirmada) => {
+            try {
+              let actualLogId = logId;
+
+              // Si el backend no retorna log_id directamente, lo buscamos en el historial (el registro más reciente)
+              if (!actualLogId) {
+                const resHist = await axiosClient.get("/inferencia/historial");
+                const hist = Array.isArray(resHist.data) ? resHist.data : resHist.data.historial || [];
+                if (hist.length > 0) {
+                  // asume que está ordenado del más reciente al más antiguo
+                  actualLogId = hist[0].log_id;
+                }
+              }
+
+              if (!actualLogId) {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error Interno',
+                  text: 'No se pudo obtener el ID del registro para guardar la confirmación.',
+                  confirmButtonColor: '#2cba93'
+                });
+                return;
+              }
+
+              const formData = new FormData();
+              formData.append("log_id", actualLogId.toString());
+              formData.append("especie_usuario", especieConfirmada);
+
+              await axiosClient.post("/inferencia/especie_usuario", formData);
+
+              // Todo bien, mostramos mensaje y cerramos
+              handleReset();
+            } catch (error: any) {
+              console.error("Error guardando especie de usuario:", error);
+              Swal.fire({
+                icon: 'error',
+                title: 'No se pudo guardar',
+                text: error.response?.data?.detail || 'Hubo un error al guardar tu selección.',
+                confirmButtonColor: '#2cba93'
+              });
+            }
+          }}
         />
       )}
 
