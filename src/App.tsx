@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Login } from "../src/pages/login"; // Tu página de Login
 import { Analizador } from './pages/all/Analizador_usuario';
 import { DashboardAdmin } from "../src/pages/admin/dashboard_admin"; // Asegúrate que el nombre del archivo coincida (mayúsculas/minúsculas)
+import axiosClient from "../src/api/axiosClient";
 import type { JSX } from "react";
 
 // 1. COMPONENTE "ROOT" (El portero)
@@ -34,40 +35,58 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     return children;
 };
 
+const APP_VERSION = "1.0.2"; // Cambia esto para forzar limpieza total en todos los usuarios
+
 function App() {
     /**
-     * EFECTO PARA CERRAR SESIÓN POR INACTIVIDAD (10 MINUTOS)
-     * 
-     * Si el usuario no mueve el mouse, teclea o hace click por 10 minutos,
-     * se borra la sesión y se redirige al login.
+     * EFECTO PARA ROMPER CACHE Y VERIFICAR SESIÓN
      */
     useEffect(() => {
+        // 1. ROMPER CACHE DE LOCALSTORAGE (VERSIONAMIENTO)
+        const savedVersion = localStorage.getItem("app_version");
+        if (savedVersion !== APP_VERSION) {
+            console.log("Nueva versión detectada. Limpiando cache local...");
+            localStorage.clear();
+            localStorage.setItem("app_version", APP_VERSION);
+            // Si estaba logueado, lo mandamos al login para asegurar sincronía con el back
+            if (window.location.pathname !== "/login") {
+                window.location.href = "/login?cache=cleared";
+            }
+        }
+
+        // 2. VERIFICAR SI LA SESIÓN ES REAL EN EL BACKEND
+        const checkSession = async () => {
+            const token = localStorage.getItem("token");
+            if (token && window.location.pathname !== "/login") {
+                try {
+                    // Si el back se reinició y perdió la sesión (o el token es inválido)
+                    // esto disparará el interceptor 401 que ya configuramos.
+                    await axiosClient.get("/usuarios/me");
+                } catch (e) {
+                    // Interceptor hará el trabajo por nosotros
+                }
+            }
+        };
+        checkSession();
+
+        // 3. TIMER DE INACTIVIDAD (10 MINUTOS)
         let timer: ReturnType<typeof setTimeout>;
 
         const logout = () => {
-            console.log("Sesión cerrada por inactividad (10 min).");
-            localStorage.removeItem("token");
-            localStorage.removeItem("role_id");
-            localStorage.removeItem("user_data");
-            window.location.href = "/login";
+            console.log("Sesión cerrada por inactividad.");
+            localStorage.clear();
+            window.location.href = "/login?reason=inactivity";
         };
 
         const resetTimer = () => {
             if (timer) clearTimeout(timer);
-            // 600,000 ms = 10 minutos
             timer = setTimeout(logout, 600000);
         };
 
-        // Eventos que consideraremos como "actividad"
         const events = ["mousedown", "keypress", "scroll", "mousemove", "touchstart"];
-
-        // Iniciar el timer al cargar
         resetTimer();
-
-        // Agregar listeners
         events.forEach(event => document.addEventListener(event, resetTimer));
 
-        // Limpieza al desmontar
         return () => {
             if (timer) clearTimeout(timer);
             events.forEach(event => document.removeEventListener(event, resetTimer));
