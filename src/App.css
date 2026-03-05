@@ -614,3 +614,15 @@ padding-top: 20px;
 .avatar-circle {
   flex-shrink: 0; /* Que no se aplaste */
 }
+
+/* =========================================================================
+   8. ESTILOS GLOBALES - REPRODUCTOR AUDIO (10px Radio)
+   ========================================================================= */
+audio {
+  border-radius: 10px !important;
+}
+
+audio::-webkit-media-controls-enclosure,
+audio::-webkit-media-controls-panel {
+  border-radius: 10px !important;
+}

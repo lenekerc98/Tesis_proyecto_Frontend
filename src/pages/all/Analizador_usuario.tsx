@@ -315,10 +315,19 @@ export const Analizador = () => {
               formData.append("log_id", actualLogId.toString());
               formData.append("especie_usuario", especieConfirmada);
 
-              await axiosClient.post("/inferencia/especie_usuario", formData);
+              await axiosClient.post("/inferencia/especie_usuario", formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+              });
 
               // Todo bien, mostramos mensaje y cerramos
-              handleReset();
+              Swal.fire({
+                icon: 'success',
+                title: '¡Guardado!',
+                text: 'La confirmación de especie se guardó correctamente.',
+                confirmButtonColor: '#2cba93',
+                timer: 2000,
+                showConfirmButton: false
+              });
             } catch (error: any) {
               console.error("Error guardando especie de usuario:", error);
               Swal.fire({

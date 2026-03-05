@@ -14,6 +14,7 @@ export const GestionUsuarios = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const cargarUsuarios = async () => {
     try {
@@ -49,46 +50,69 @@ export const GestionUsuarios = () => {
   };
 
   return (
-    <div className="card border-0 shadow-sm rounded-4 animate__animated animate__fadeIn mx-auto" style={{ width: "fit-content" }}>
-      <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-        <h5 className="mb-0 fw-bold">Gestión de Usuarios</h5>
-        <button className="btn btn-sm btn-outline-primary" onClick={cargarUsuarios}><i className="bi bi-arrow-clockwise"></i></button>
+    <div className="card border-0 shadow-sm rounded-4 animate__animated animate__fadeIn mx-auto" style={{ maxWidth: '1200px' }}>
+      <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <h5 className="mb-0 fw-bold fs-4">Gestión de Usuarios</h5>
+        <div className="input-group" style={{ maxWidth: '350px' }}>
+          <span className="input-group-text bg-white border-end-0 border rounded-start-pill ps-3">
+            <i className="bi bi-search text-muted"></i>
+          </span>
+          <input
+            type="text"
+            className="form-control border-start-0 border rounded-end-pill py-2 shadow-none"
+            placeholder="Buscar por nombre, correo o rol..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
       <div className="table-responsive">
-        <table className="table table-sm table-hover align-middle mb-0">
+        <table className="table table-hover align-middle mb-0">
           <thead className="table-light">
             <tr>
-              <th className="py-2" style={{ width: '50px' }}>ID</th>
-              <th className="py-2" style={{ minWidth: '300px' }}>Usuario</th>
-              <th className="py-2 text-center" style={{ width: '100px' }}>Rol</th>
-              <th className="py-2 text-center" style={{ width: '100px' }}>Estado</th>
-              <th className="text-end pe-4 py-2" style={{ width: '120px' }}>Acciones</th>
+              <th className="py-3 px-4 text-muted" style={{ width: '80px' }}>ID</th>
+              <th className="py-3 text-muted" style={{ width: '30%' }}>Usuario</th>
+              <th className="py-3 text-muted" style={{ width: '40%' }}>Correo</th>
+              <th className="py-3 text-center text-muted" style={{ width: '10%' }}>Rol</th>
+              <th className="py-3 text-center text-muted" style={{ width: '10%' }}>Estado</th>
+              <th className="text-end pe-4 py-3 text-muted" style={{ width: '10%' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {usuarios.map((u) => (
-              <tr key={u.id_usuario}>
-                <td className="py-1 fw-bold text-muted fw-bold" style={{ fontSize: '0.9rem' }}>#{u.id_usuario}</td>
-                <td className="py-1">
-                  <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>{u["Nombre completo"]}</div>
-                  <small className="text-muted" style={{ fontSize: '0.8rem' }}>{u.email}</small>
-                </td>
-                <td className="py-1 text-center">
-                  <span className={`badge ${u.rol === "admin" ? "bg-danger" : "bg-primary"} bg-opacity-75`} style={{ minWidth: '70px', fontSize: '0.75rem' }}>{u.rol}</span>
-                </td>
-                <td className="py-1 text-center">
-                  {u.usuario_activo ?
-                    <span className="badge bg-success bg-opacity-75" style={{ minWidth: '60px', fontSize: '0.75rem' }}>Activo</span> :
-                    <span className="badge bg-secondary" style={{ minWidth: '60px', fontSize: '0.75rem' }}>Inactivo</span>
-                  }
-                </td>
-                <td className="text-end pe-4 py-1">
-                  <button className="btn btn-sm btn-outline-primary rounded-pill px-3 py-0 border-0 fw-bold" style={{ fontSize: '0.75rem', backgroundColor: '#f0f2f5' }} onClick={() => handleEditClick(u)}>
-                    Editar
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {usuarios
+              .filter((u) => {
+                const term = searchTerm.toLowerCase();
+                return (
+                  u["Nombre completo"].toLowerCase().includes(term) ||
+                  u.email.toLowerCase().includes(term) ||
+                  u.rol.toLowerCase().includes(term)
+                );
+              })
+              .map((u) => (
+                <tr key={u.id_usuario}>
+                  <td className="py-3 px-4 fw-bold text-muted" style={{ fontSize: '1rem' }}>#{u.id_usuario}</td>
+                  <td className="py-3">
+                    <div className="fw-bold text-dark fs-5">{u["Nombre completo"]}</div>
+                  </td>
+                  <td className="py-3">
+                    <div className="text-muted" style={{ fontSize: '0.9rem' }}>{u.email}</div>
+                  </td>
+                  <td className="py-3 text-center">
+                    <span className={`badge ${u.rol === "admin" ? "bg-danger" : "bg-primary"} bg-opacity-75 px-3 py-2 rounded-pill`} style={{ fontSize: '0.85rem' }}>{u.rol}</span>
+                  </td>
+                  <td className="py-3 text-center">
+                    {u.usuario_activo ?
+                      <span className="badge bg-success bg-opacity-75 px-3 py-2 rounded-pill" style={{ fontSize: '0.85rem' }}>Activo</span> :
+                      <span className="badge bg-secondary px-3 py-2 rounded-pill" style={{ fontSize: '0.85rem' }}>Inactivo</span>
+                    }
+                  </td>
+                  <td className="text-end pe-4 py-3">
+                    <button className="btn btn-outline-primary rounded-pill px-4 py-1 border-0 fw-bold" style={{ backgroundColor: '#f0f2f5' }} onClick={() => handleEditClick(u)}>
+                      Editar
+                    </button>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>

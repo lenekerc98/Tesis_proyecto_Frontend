@@ -161,24 +161,7 @@ export const MapaPredicciones = () => {
             <div className="col-md-8 col-lg-9 h-100">
                 <div className="card border-0 shadow-sm rounded-4 overflow-hidden h-100 position-relative">
 
-                    {/* BARRA DE BÚSQUEDA FLOTANTE SOBRE EL MAPA */}
-                    <div className="position-absolute top-0 start-0 m-3 p-2 bg-white rounded-3 shadow-sm" style={{ zIndex: 1000, maxWidth: '300px', width: '100%' }}>
-                        <div className="input-group input-group-sm">
-                            <span className="input-group-text bg-white border-0"><i className="bi bi-search text-muted"></i></span>
-                            <input
-                                type="text"
-                                className="form-control border-0"
-                                placeholder="Buscar usuario o ave..."
-                                value={busqueda}
-                                onChange={(e) => {
-                                    setBusqueda(e.target.value);
-                                    setLimiteVisible(20); // Reset al buscar
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    <div style={{ height: "600px", width: "100%" }}>
+                    <div style={{ height: "calc(100vh - 105px)", width: "100%" }}>
                         <MapContainer center={centroInicial} zoom={13} style={{ height: "100%", width: "100%" }}>
                             <TileLayer
                                 attribution='&copy; OpenStreetMap'
@@ -228,21 +211,36 @@ export const MapaPredicciones = () => {
             <div className="col-md-4 col-lg-3 h-100">
                 <div className="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column">
                     <div className="card-header bg-white py-3">
-                        <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
                             <h6 className="mb-0 fw-bold text-dark">
                                 <i className="bi bi-globe-americas me-2"></i>Avistamientos
                             </h6>
                             <span className="badge bg-secondary rounded-pill">{puntosFiltrados.length}</span>
                         </div>
+                        {/* BUSCADOR INTEGRADO EN LA LISTA */}
+                        <div className="input-group input-group-sm mt-3">
+                            <span className="input-group-text bg-light border-0"><i className="bi bi-search text-muted"></i></span>
+                            <input
+                                type="text"
+                                className="form-control border-0 bg-light"
+                                placeholder="Filtrar por ave o usuario..."
+                                value={busqueda}
+                                onChange={(e) => {
+                                    setBusqueda(e.target.value);
+                                    setLimiteVisible(20);
+                                }}
+                                style={{ boxShadow: 'none' }}
+                            />
+                        </div>
                     </div>
 
-                    <div className="card-body p-0 overflow-auto" style={{ maxHeight: "545px" }}>
+                    <div className="card-body p-0 overflow-auto" style={{ maxHeight: "calc(100vh - 230px)" }}>
                         <div className="list-group list-group-flush">
                             {puntosVisibles.length > 0 ? (
                                 puntosVisibles.map((punto) => (
                                     <button
                                         key={punto.log_id}
-                                        className={`list-group-item list-group-item-action py-3 ${selectedId === punto.log_id ? 'bg-success-subtle' : ''}`}
+                                        className={`list-group-item list-group-item-action py-3 border-bottom ${selectedId === punto.log_id ? 'bg-success-subtle' : ''}`}
                                         onClick={() => handleItemClick(punto)}
                                     >
                                         <div className="d-flex align-items-center">
@@ -250,28 +248,27 @@ export const MapaPredicciones = () => {
                                                 {punto.foto ? (
                                                     <img
                                                         src={punto.foto}
-                                                        className="rounded-circle border shadow-sm"
-                                                        style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                                                        className="rounded-circle border border-2 shadow-sm"
+                                                        style={{ width: '60px', height: '60px', objectFit: 'cover' }}
                                                         alt="ave"
                                                     />
                                                 ) : (
-                                                    <div className="rounded-circle bg-light d-flex align-items-center justify-content-center border" style={{ width: '50px', height: '50px' }}>
+                                                    <div className="rounded-circle bg-light d-flex align-items-center justify-content-center border" style={{ width: '60px', height: '60px' }}>
                                                         <i className="bi bi-bird text-muted fs-4"></i>
                                                     </div>
                                                 )}
                                             </div>
 
                                             <div className="flex-grow-1 overflow-hidden text-start">
-                                                <h6 className="mb-0 fw-bold text-dark text-capitalize text-truncate" style={{ fontSize: '0.95rem' }}>
+                                                <h6 className="mb-0 fw-bold text-dark text-capitalize text-truncate" style={{ fontSize: '1.05rem', letterSpacing: '-0.3px' }}>
                                                     {punto.nombre_comun}
                                                 </h6>
 
-                                                {/* NOMBRE DE USUARIO EN LA LISTA */}
-                                                <small className="d-block text-primary text-truncate mt-1" style={{ fontSize: '0.8rem' }}>
-                                                    <i className="bi bi-person me-1"></i>{punto.usuario}
+                                                <small className="d-block text-primary text-truncate mt-1 fw-medium" style={{ fontSize: '0.85rem' }}>
+                                                    <i className="bi bi-person-fill me-1 opacity-75"></i>{punto.usuario}
                                                 </small>
 
-                                                <small className="text-muted d-block fst-italic text-truncate mt-1" style={{ fontSize: '0.75rem' }}>
+                                                <small className="text-muted d-block fst-italic text-truncate mt-1" style={{ fontSize: '0.8rem', opacity: 0.8 }}>
                                                     {punto.prediccion}
                                                 </small>
                                             </div>

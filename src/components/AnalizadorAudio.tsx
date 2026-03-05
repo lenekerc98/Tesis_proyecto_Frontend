@@ -209,19 +209,19 @@ export const AnalizadorAudio: React.FC<AnalizadorAudioProps> = ({ onAnalizar, lo
         {/* REPRODUCTOR */}
         {audioUrl && (
           <div className="bg-white p-3 rounded-4 shadow-sm w-100 border animate__animated animate__fadeInUp"
-            style={{ maxWidth: '350px', zIndex: 10, borderRadius: '10px' }}>
+            style={{ maxWidth: '400px', zIndex: 10, borderRadius: '10px' }}>
             <audio src={audioUrl} controls className="w-100 mb-3" />
             <div className="d-flex gap-2">
               <button
-                className="btn btn-success flex-grow-1 fw-bold"
+                className="btn btn-success flex-grow-1 fw-bold fs-5 py-2"
                 onClick={handleEnviar}
                 disabled={loading}
                 style={{ borderRadius: '10px', backgroundColor: '#798369' }}
               >
                 {loading ? "Analizando..." : "Identificar Ave"}
               </button>
-              <button className="btn btn-outline-danger rounded-circle" onClick={eliminarAudio}>
-                <i className="bi bi-trash"></i>
+              <button className="btn btn-outline-danger rounded-circle d-flex justify-content-center align-items-center" style={{ width: '50px', height: '50px' }} onClick={eliminarAudio}>
+                <i className="bi bi-trash fs-5"></i>
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axiosClient from "../../api/axiosClient";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import Swal from 'sweetalert2';
 
 // --- IMPORTAMOS COMPONENTES COMPARTIDOS ---
 import { Sidebar } from "../../components/Sidebar";
@@ -478,9 +479,56 @@ export const DashboardAdmin = () => {
                         nombre_cientifico: resultado.prediccion_principal.especie,
                         probabilidad: resultado.prediccion_principal.probabilidad,
                         url_imagen: resultado.prediccion_principal.url_imagen || infoAvesMap[resultado.prediccion_principal.especie]?.url,
-                        url_audio_inferencia: urlAudioInferencia
+                        url_audio_inferencia: urlAudioInferencia,
+                        log_id: resultado.prediccion_principal.log_id || resultado.log_id,
                     }}
+                    infoAvesMap={infoAvesMap}
                     listaPredicciones={resultado.top_5_predicciones || []}
+                    onGuardarEspecie={async (logId, especieConfirmada) => {
+                        try {
+                            let actualLogId = logId;
+                            if (!actualLogId) {
+                                const resHist = await axiosClient.get("/inferencia/historial");
+                                const hist = Array.isArray(resHist.data) ? resHist.data : resHist.data.historial || [];
+                                if (hist.length > 0) actualLogId = hist[0].log_id;
+                            }
+
+                            if (!actualLogId) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error Interno',
+                                    text: 'No se pudo obtener el ID del registro para guardar la confirmación.',
+                                    confirmButtonColor: '#2cba93'
+                                });
+                                return;
+                            }
+
+                            const formData = new FormData();
+                            formData.append("log_id", actualLogId.toString());
+                            formData.append("especie_usuario", especieConfirmada);
+
+                            await axiosClient.post("/inferencia/especie_usuario", formData, {
+                                headers: { "Content-Type": "multipart/form-data" }
+                            });
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Guardado!',
+                                text: 'La confirmación de especie se guardó correctamente.',
+                                confirmButtonColor: '#2cba93',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } catch (error: any) {
+                            console.error("Error guardando especie de usuario:", error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'No se pudo guardar',
+                                text: error.response?.data?.detail || 'Hubo un error al guardar tu selección.',
+                                confirmButtonColor: '#2cba93'
+                            });
+                        }
+                    }}
                     botonAccion={
                         <button className="btn btn-success rounded-pill px-4 fw-bold" onClick={handleReset}>
                             Nuevo Análisis

@@ -88,6 +88,27 @@ export const Historial_admin = () => {
   const abrirModal = (item: any) => { setSelectedItem(item); setShowModal(true); };
   const cerrarModal = () => { setShowModal(false); setSelectedItem(null); };
 
+  // --- PAGINACIÓN ---
+  const [paginaActual, setPaginaActual] = useState(1);
+  const registrosPorPagina = 10;
+
+  const totalPaginas = Math.ceil(registrosFiltrados.length / registrosPorPagina);
+  const indiceUltimo = paginaActual * registrosPorPagina;
+  const indicePrimero = indiceUltimo - registrosPorPagina;
+  const registrosPaginados = registrosFiltrados.slice(indicePrimero, indiceUltimo);
+
+  const renderPaginas = () => {
+    const paginas = [];
+    for (let i = 1; i <= totalPaginas; i++) {
+      if (i === 1 || i === totalPaginas || (i >= paginaActual - 1 && i <= paginaActual + 1)) {
+        paginas.push(i);
+      } else if (i === paginaActual - 2 || i === paginaActual + 2) {
+        paginas.push("...");
+      }
+    }
+    return [...new Set(paginas)];
+  };
+
   if (loading) return <div className="p-5 text-center"><div className="spinner-border text-success"></div></div>;
 
 
@@ -126,8 +147,8 @@ export const Historial_admin = () => {
               </tr>
             </thead>
             <tbody>
-              {registrosFiltrados.length > 0 ? (
-                registrosFiltrados.map((reg) => {
+              {registrosPaginados.length > 0 ? (
+                registrosPaginados.map((reg) => {
 
                   const clave = normalizar(reg.prediccion);
                   const infoAve = infoAvesMap[clave];
@@ -214,6 +235,63 @@ export const Historial_admin = () => {
             </tbody>
           </table>
         </div>
+
+        {/* --- PAGINACIÓN (DISEÑO REQUERIDO) --- */}
+        {totalPaginas > 1 && (
+          <div className="card-footer bg-white border-top-0 py-4">
+            <div className="d-flex justify-content-center align-items-center gap-2">
+              <button
+                className="btn btn-link text-decoration-underline fw-bold text-primary p-0"
+                onClick={() => setPaginaActual(1)}
+                disabled={paginaActual === 1}
+              >
+                Primero
+              </button>
+
+              <div className="mx-3 d-flex align-items-center gap-2">
+                {renderPaginas().map((p, i) => (
+                  p === "..." ? (
+                    <span key={i} className="text-muted mx-1">...</span>
+                  ) : (
+                    <button
+                      key={i}
+                      onClick={() => setPaginaActual(p as number)}
+                      className={`d-flex align-items-center justify-content-center rounded-circle border fw-bold`}
+                      style={{
+                        width: '35px',
+                        height: '35px',
+                        fontSize: '0.9rem',
+                        backgroundColor: paginaActual === p ? 'transparent' : 'white',
+                        borderColor: paginaActual === p ? '#dc3545' : '#e9ecef', // Rojo si es activo
+                        color: paginaActual === p ? '#dc3545' : '#6c757d',
+                        transition: 'all 0.2s',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {p}
+                    </button>
+                  )
+                ))}
+              </div>
+
+              <button
+                className="btn btn-link text-dark p-0 text-decoration-none fw-bold"
+                onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+                disabled={paginaActual === totalPaginas}
+              >
+                &gt;
+              </button>
+
+              <button
+                className="btn btn-link text-decoration-underline fw-bold text-primary p-0 ms-2"
+                onClick={() => setPaginaActual(totalPaginas)}
+                disabled={paginaActual === totalPaginas}
+              >
+                Último
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* MODAL DETALLE */}

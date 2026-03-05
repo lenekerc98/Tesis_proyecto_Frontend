@@ -35,6 +35,7 @@ export const ModalResultados: React.FC<Props> = ({
   modoHistorial = false,
   especieUsuarioGuardada = null,
   onGuardarEspecie,
+  infoAvesMap,
 }) => {
   // Estado para manejar el Zoom de la imagen
   const [imagenZoom, setImagenZoom] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export const ModalResultados: React.FC<Props> = ({
   const [esAveCorrecta, setEsAveCorrecta] = useState(true);
   const [aveSeleccionada, setAveSeleccionada] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [fueGuardado, setFueGuardado] = useState(false);
 
   // Estado para la lista consumida directo del catálogo
   const [listaNombresAves, setListaNombresAves] = useState<string[]>([]);
@@ -86,17 +88,37 @@ export const ModalResultados: React.FC<Props> = ({
   }, [prediccionPrincipal, modoHistorial, especieUsuarioGuardada]);
 
   const handleGuardar = async () => {
-    if (onGuardarEspecie && prediccionPrincipal.log_id) {
+    if (onGuardarEspecie) {
       setGuardando(true);
       const nombreParaGuardar = esAveCorrecta ? (prediccionPrincipal.nombre || prediccionPrincipal.nombre_cientifico) : aveSeleccionada;
-      await onGuardarEspecie(prediccionPrincipal.log_id, nombreParaGuardar, esAveCorrecta);
-      setGuardando(false);
+      try {
+        await onGuardarEspecie(prediccionPrincipal.log_id || 0, nombreParaGuardar, esAveCorrecta);
+        setFueGuardado(true);
+      } catch (error) {
+        console.error("Error al guardar en el componente:", error);
+      } finally {
+        setGuardando(false);
+      }
     }
   };
 
   if (!isOpen) return null;
 
   const pct = (prediccionPrincipal.probabilidad * 100).toFixed(1);
+
+  // --- IMAGEN DINÁMICA ---
+  let imagenAMostrar = prediccionPrincipal.url_imagen;
+
+  // Mostramos temporalmente la foto del ave que está seleccionando el usuario,
+  // y cuando guarda, devolvemos a la foto original de la IA.
+  if (!esAveCorrecta && !fueGuardado && aveSeleccionada && infoAvesMap) {
+    const claveAves = Object.keys(infoAvesMap);
+    const claveCientifica = claveAves.find(k => infoAvesMap[k].nombre === aveSeleccionada || k === aveSeleccionada);
+
+    if (claveCientifica && infoAvesMap[claveCientifica].url) {
+      imagenAMostrar = infoAvesMap[claveCientifica].url;
+    }
+  }
 
   // --- RENDERIZADO DEL ZOOM (PANTALLA COMPLETA) ---
   if (imagenZoom) {
@@ -161,7 +183,7 @@ export const ModalResultados: React.FC<Props> = ({
                   {/* TEXTO */}
                   <div className="col-12 col-md-8">
                     <span className="badge bg-success mb-2 p-2">
-                      🏆 Especie Identificada
+                      🐦 Ave Identificada
                     </span>
 
                     <h3 className="fw-bold text-dark mb-1 text-capitalize">
@@ -171,13 +193,6 @@ export const ModalResultados: React.FC<Props> = ({
                     <div className="fst-italic text-muted mb-3">
                       {prediccionPrincipal.nombre_cientifico}
                     </div>
-
-                    {prediccionPrincipal.url_audio_inferencia && (
-                      <div className="mb-2">
-                        <span className="badge bg-primary mb-1 me-2"><i className="bi bi-mic-fill me-1"></i>{modoHistorial ? "Grabación Original" : "Audio Analizado"}</span>
-                        <audio src={prediccionPrincipal.url_audio_inferencia} controls className="w-100 shadow-sm rounded-pill mt-1" style={{ height: '35px', outline: 'none' }} />
-                      </div>
-                    )}
 
                     <div className="d-flex align-items-center">
                       <div className="progress flex-grow-1 me-3" style={{ height: "15px" }}>
@@ -191,15 +206,15 @@ export const ModalResultados: React.FC<Props> = ({
                   </div>
 
                   {/* FOTO (Clickable para Zoom) */}
-                  {prediccionPrincipal.url_imagen && (
+                  {imagenAMostrar && (
                     <div className="col-12 col-md-4 text-center">
                       <div
                         className="position-relative d-inline-block"
                         style={{ cursor: "zoom-in" }}
-                        onClick={() => setImagenZoom(prediccionPrincipal.url_imagen!)}
+                        onClick={() => setImagenZoom(imagenAMostrar!)}
                       >
                         <img
-                          src={prediccionPrincipal.url_imagen}
+                          src={imagenAMostrar}
                           alt="especie"
                           className="img-fluid rounded border border-2 border-white shadow"
                           style={{ maxHeight: 140, objectFit: "cover" }}
@@ -215,67 +230,88 @@ export const ModalResultados: React.FC<Props> = ({
                     </div>
                   )}
 
-                  {/* NUEVA SECCIÓN: CONFIRMACIÓN DE AVE */}
-                  <div className="col-12 mt-3 pt-3 border-top border-warning-subtle">
-                    <div className="d-flex justify-content-between align-items-sm-center flex-column flex-sm-row mb-2 gap-2">
-                      <div className="form-check form-switch mb-0">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          id="checkAveCorrecta"
-                          checked={esAveCorrecta}
-                          onChange={(e) => setEsAveCorrecta(e.target.checked)}
-                          disabled={modoHistorial}
-                        />
-                        <label
-                          className="form-check-label fw-bold text-dark"
-                          htmlFor="checkAveCorrecta"
-                          style={modoHistorial ? { cursor: "not-allowed", opacity: 0.8 } : { cursor: "pointer" }}
-                        >
-                          {modoHistorial
-                            ? (esAveCorrecta ? "Marcado como Correcta" : "Marcado como Incorrecta")
-                            : "¿Es correcta? (Desmarca si no lo es)"}
-                        </label>
+                  {/* NUEVA SECCIÓN: CONFIRMACIÓN DE AVE Y REPRODUCTOR */}
+                  <div className="col-12 mt-3 pt-4 border-top border-warning-subtle">
+                    <div className="row align-items-stretch">
+
+                      {/* COLUMNA IZQUIERDA: REPRODUCTOR */}
+                      <div className="col-12 col-md-6 mb-3 mb-md-0 d-flex flex-column">
+                        {prediccionPrincipal.url_audio_inferencia && (
+                          <div className="bg-white p-3 rounded border shadow-sm w-100 h-100 d-flex flex-column justify-content-center">
+                            <div className="d-flex align-items-center mb-2">
+                              <i className="bi bi-mic-fill text-primary fs-5 me-2"></i>
+                              <span className="fw-bold text-dark">{modoHistorial ? "Grabación Original" : "Audio Analizado"}</span>
+                            </div>
+                            <audio src={prediccionPrincipal.url_audio_inferencia} controls className="w-100 mt-1" style={{ height: '35px', outline: 'none' }} />
+                          </div>
+                        )}
                       </div>
 
-                      {/* BOTÓN DE GUARDADO POSICIONADO JUSTO AQUÍ */}
-                      {!modoHistorial && onGuardarEspecie && (
-                        <button
-                          className="btn btn-sm btn-primary fw-bold px-3 rounded-pill shadow-sm"
-                          onClick={handleGuardar}
-                          disabled={guardando}
-                        >
-                          {guardando ? (
-                            <><span className="spinner-border spinner-border-sm me-2"></span>Guardando...</>
-                          ) : (
-                            <><i className="bi bi-save me-2"></i>Guardar Confirmación</>
-                          )}
-                        </button>
-                      )}
-                    </div>
+                      {/* COLUMNA DERECHA: FORMULARIO Y BOTÓN GUARDAR */}
+                      <div className="col-12 col-md-6 d-flex flex-column justify-content-center">
+                        <div className="form-check form-switch mb-3">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id="checkAveCorrecta"
+                            checked={esAveCorrecta}
+                            onChange={(e) => setEsAveCorrecta(e.target.checked)}
+                            disabled={modoHistorial || fueGuardado}
+                          />
+                          <label
+                            className="form-check-label fw-bold text-dark"
+                            htmlFor="checkAveCorrecta"
+                            style={(modoHistorial || fueGuardado) ? { cursor: "not-allowed", opacity: 0.8 } : { cursor: "pointer" }}
+                          >
+                            {modoHistorial
+                              ? (esAveCorrecta ? "Marcado como Correcta" : "Marcado como Incorrecta")
+                              : "¿Es correcta? (Desmarca si no lo es)"}
+                          </label>
+                        </div>
 
-                    <div className="">
-                      <label className="form-label text-muted small fw-bold mb-1">
-                        {modoHistorial ? "Ave seleccionada por el usuario:" : "Si es incorrecta, selecciona el ave real:"}
-                      </label>
-                      <select
-                        className="form-select form-select-sm"
-                        style={{ maxWidth: '400px' }}
-                        value={aveSeleccionada}
-                        onChange={(e) => setAveSeleccionada(e.target.value)}
-                        disabled={esAveCorrecta || modoHistorial}
-                      >
-                        <option value={prediccionPrincipal.nombre || prediccionPrincipal.nombre_cientifico} className="fw-bold">
-                          {prediccionPrincipal.nombre || prediccionPrincipal.nombre_cientifico} (Detectada)
-                        </option>
-                        {listaNombresAves.map((nombre, i) => {
-                          const nombreDetectado = prediccionPrincipal.nombre || prediccionPrincipal.nombre_cientifico;
-                          if (nombre !== nombreDetectado) {
-                            return <option key={i} value={nombre}>{nombre}</option>;
-                          }
-                          return null;
-                        })}
-                      </select>
+                        <div className="mb-2">
+                          <label className="form-label text-muted small fw-bold mb-1">
+                            {modoHistorial ? "Ave seleccionada por el usuario:" : "Si es incorrecta, selecciona el ave real:"}
+                          </label>
+                          <select
+                            className="form-select form-select-sm"
+                            value={aveSeleccionada}
+                            onChange={(e) => setAveSeleccionada(e.target.value)}
+                            disabled={esAveCorrecta || modoHistorial || fueGuardado}
+                          >
+                            <option value={prediccionPrincipal.nombre || prediccionPrincipal.nombre_cientifico} className="fw-bold">
+                              {prediccionPrincipal.nombre || prediccionPrincipal.nombre_cientifico} (Detectada)
+                            </option>
+                            {listaNombresAves.map((nombre, i) => {
+                              const nombreDetectado = prediccionPrincipal.nombre || prediccionPrincipal.nombre_cientifico;
+                              if (nombre !== nombreDetectado) {
+                                return <option key={i} value={nombre}>{nombre}</option>;
+                              }
+                              return null;
+                            })}
+                          </select>
+                        </div>
+
+                        {/* BOTÓN DE GUARDADO POSICIONADO JUSTO AQUÍ, ALINEADO A LA DERECHA */}
+                        {!modoHistorial && onGuardarEspecie && (
+                          <div className="d-flex justify-content-end mt-1">
+                            <button
+                              className={`btn btn-sm ${fueGuardado ? 'btn-success' : 'btn-primary'} text-white fw-bold px-4 rounded shadow-sm`}
+                              style={!fueGuardado ? { backgroundColor: '#5f754a', borderColor: '#5f754a' } : {}}
+                              onClick={handleGuardar}
+                              disabled={guardando || fueGuardado}
+                            >
+                              {guardando ? (
+                                <><span className="spinner-border spinner-border-sm me-2"></span>Guardando...</>
+                              ) : fueGuardado ? (
+                                <><i className="bi bi-check-circle me-2"></i>Guardado</>
+                              ) : (
+                                <>Guardar</>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -341,6 +377,6 @@ export const ModalResultados: React.FC<Props> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
