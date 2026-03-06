@@ -71,6 +71,7 @@ export const Analizador = () => {
       }
     };
     initData();
+    obtenerUbicacion();
 
     // Auto-cerrar sidebar en móviles al inicio
     if (window.innerWidth < 768) setActive(false);
@@ -83,10 +84,10 @@ export const Analizador = () => {
       (pos) => {
         setLatitud(pos.coords.latitude);
         setLongitud(pos.coords.longitude);
-        setLocalizacion(`Lat: ${pos.coords.latitude}, Lon: ${pos.coords.longitude}`);
+        setLocalizacion(`Lat: ${pos.coords.latitude.toFixed(4)}, Lon: ${pos.coords.longitude.toFixed(4)}`);
       },
       (err) => console.warn("Ubicación no disponible:", err.message),
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -138,13 +139,14 @@ export const Analizador = () => {
     }
 
     setLoading(true);
-    // Intentamos refrescar la ubicación justo antes de enviar
-    obtenerUbicacion();
+    // Nota: obtenerUbicacion() ya se ejecutó en el mount y se refresca periódicamente
 
     const formData = new FormData();
     formData.append("file", archivoParaEnviar);
-    formData.append("latitud", (latitud || 0).toString());
-    formData.append("longitud", (longitud || 0).toString());
+
+    // Si no hay coordenadas, enviamos null para que el backend decida o guarde 0
+    formData.append("latitud", latitud !== null ? latitud.toString() : "0");
+    formData.append("longitud", longitud !== null ? longitud.toString() : "0");
     formData.append("localizacion", localizacion || "Ubicación no proporcionada");
 
     try {

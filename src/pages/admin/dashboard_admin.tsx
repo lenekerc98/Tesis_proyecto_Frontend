@@ -92,6 +92,9 @@ export const DashboardAdmin = () => {
                 }
                 setInfoAvesMap(mapa);
 
+                // 3. Obtener ubicación inicial
+                obtenerUbicacion();
+
             } catch (error) {
                 console.error("Error cargando datos", error);
                 setNombreUsuario("Administrador");
@@ -157,12 +160,12 @@ export const DashboardAdmin = () => {
         if (!archivoParaEnviar) { alert("No hay audio para procesar."); return; }
 
         setLoading(true);
-        obtenerUbicacion();
 
         const formData = new FormData();
         formData.append("file", archivoParaEnviar);
-        formData.append("latitud", (latitud || 0).toString());
-        formData.append("longitud", (longitud || 0).toString());
+        // Si no hay coordenadas, enviamos 0 (el backend lo prefiere como número o string)
+        formData.append("latitud", latitud !== null ? latitud.toString() : "0");
+        formData.append("longitud", longitud !== null ? longitud.toString() : "0");
         formData.append("localizacion", localizacion || "Ubicación no disponible");
 
         try {

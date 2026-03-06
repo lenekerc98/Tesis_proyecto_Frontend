@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import axiosClient from '../api/axiosClient';
+import Swal from 'sweetalert2';
 
 // --- ICONOS LEAFLET ---
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -34,6 +35,7 @@ interface InferenciaHistorial {
     usuario: string; // Hacemos obligatorio que tenga un string (aunque sea "Anónimo")
     foto?: string;
     nombre_comun?: string;
+    tiene_ubicacion?: boolean;
 }
 
 const RecenterMap = ({ coords }: { coords: [number, number] | null }) => {
@@ -49,7 +51,8 @@ export const MapaPredicciones = () => {
     const [selectedCoords, setSelectedCoords] = useState<[number, number] | null>(null);
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [busqueda, setBusqueda] = useState("");
-    const [limiteVisible, setLimiteVisible] = useState(20);
+    const [paginaActual, setPaginaActual] = useState(1);
+    const registrosPorPagina = 10;
 
     // Coordenadas iniciales (Guayaquil/Cerro Blanco aprox)
     const centroInicial: [number, number] = [-2.1894, -79.8891];
@@ -61,7 +64,7 @@ export const MapaPredicciones = () => {
                 const roleId = localStorage.getItem("role_id");
                 const isAdmin = roleId === "0";
 
-                // Si es admin ve todo, si es usuario ve solo lo suyo
+                // Si es admin ve todo, si es usuario ve solo lo suyo.
                 const endpointHistorial = isAdmin ? '/admin/logs/historial' : '/inferencia/historial';
 
                 const [resHistorial, resAves] = await Promise.all([
@@ -69,10 +72,12 @@ export const MapaPredicciones = () => {
                     axiosClient.get('/inferencia/listar_aves')
                 ]);
 
-                // Adaptamos la data porque el endpoint de usuario puede devolver { historial: [...] }
-                // Mientras que el de admin devuelve [...] directamente
+                // Adaptamos la data porque el endpoint puede devolver total y la lista
                 let rawData = [];
-                if (Array.isArray(resHistorial.data)) {
+
+                if (resHistorial.data && resHistorial.data.total !== undefined) {
+                    rawData = resHistorial.data.historial || [];
+                } else if (Array.isArray(resHistorial.data)) {
                     rawData = resHistorial.data;
                 } else if (resHistorial.data && Array.isArray(resHistorial.data.historial)) {
                     rawData = resHistorial.data.historial;
@@ -89,32 +94,26 @@ export const MapaPredicciones = () => {
                 });
 
                 // 3. PROCESAMIENTO DE HISTORIAL
-                const historialCompleto = rawData
-                    .filter((item: any) =>
-                        // Filtramos solo los que tienen coordenadas válidas Y predicción conocida
-                        item.latitud && item.longitud &&
-                        item.latitud !== 0 && item.longitud !== 0 &&
-                        item.prediccion !== "Desconocido"
-                    )
-                    .map((item: any) => {
-                        const infoExtra = mapaAves[item.prediccion];
+                const historialCompleto = rawData.map((item: any) => {
+                    const infoExtra = mapaAves[item.prediccion];
 
-                        // --- CORRECCIÓN IMPORTANTE AQUÍ ---
-                        // Verificamos si 'item.usuario' existe y no es "Anónimo" (o string vacío)
-                        // Si tu backend manda "Anónimo" cuando no sabe quién es, esto lo respeta.
-                        // Si tu backend manda el nombre real, lo usamos.
-                        let nombreFinal = "Observador Anónimo";
-                        if (item.usuario && item.usuario.trim() !== "" && item.usuario !== "Anónimo") {
-                            nombreFinal = item.usuario;
-                        }
+                    let nombreFinal = "Observador Anónimo";
+                    if (item.usuario && item.usuario.trim() !== "" && item.usuario !== "Anónimo") {
+                        nombreFinal = item.usuario;
+                    }
 
-                        return {
-                            ...item,
-                            foto: item.url_imagen || (infoExtra ? infoExtra.imagen_url : null),
-                            nombre_comun: infoExtra ? infoExtra.nombre_comun : item.prediccion,
-                            usuario: nombreFinal // Asignamos el nombre procesado
-                        };
-                    });
+                    // Verificamos si tiene coordenadas válidas para el marcador
+                    const tieneCoords = item.latitud !== null && item.longitud !== null &&
+                        Number(item.latitud) !== 0 && Number(item.longitud) !== 0;
+
+                    return {
+                        ...item,
+                        tiene_ubicacion: tieneCoords,
+                        foto: item.url_imagen || (infoExtra ? infoExtra.imagen_url : null),
+                        nombre_comun: infoExtra ? infoExtra.nombre_comun : item.prediccion,
+                        usuario: nombreFinal
+                    };
+                });
 
                 // Ordenamos por fecha (más reciente primero)
                 historialCompleto.sort((a: any, b: any) =>
@@ -141,18 +140,49 @@ export const MapaPredicciones = () => {
         });
     }, [puntos, busqueda]);
 
-    const puntosVisibles = puntosFiltrados.slice(0, limiteVisible);
+    // Calculamos el total de registros filtrados para la estructura de páginas
+    const totalPaginas = Math.ceil(puntosFiltrados.length / registrosPorPagina) || 1;
+
+    // Paginación en el frontend de la barra lateral
+    const indiceUltimo = paginaActual * registrosPorPagina;
+    const indicePrimero = indiceUltimo - registrosPorPagina;
+    const puntosVisibles = puntosFiltrados.slice(indicePrimero, indiceUltimo);
+
+    const markerRefs = useRef<{ [key: number]: any }>({});
+
+    const renderPaginas = () => {
+        const paginas = [];
+        for (let i = 1; i <= totalPaginas; i++) {
+            if (i === 1 || i === totalPaginas || (i >= paginaActual - 1 && i <= paginaActual + 1)) {
+                paginas.push(i);
+            } else if (i === paginaActual - 2 || i === paginaActual + 2) {
+                paginas.push("...");
+            }
+        }
+        return [...new Set(paginas)];
+    };
 
     const handleItemClick = (punto: InferenciaHistorial) => {
         if (punto.latitud && punto.longitud) {
             setSelectedCoords([punto.latitud, punto.longitud]);
             setSelectedId(punto.log_id);
+
+            // Abrir el popup del marcador automáticamente si existe
+            const marker = markerRefs.current[punto.log_id];
+            if (marker) {
+                marker.openPopup();
+            }
+        } else {
+            Swal.fire({
+                icon: 'info',
+                title: 'No hay ubicación',
+                text: 'Esta predicción no tiene coordenadas adjuntas.',
+                confirmButtonColor: '#198754'
+            });
         }
     };
 
-    const cargarMas = () => {
-        setLimiteVisible(prev => prev + 20);
-    };
+
 
     return (
         <div className="row g-3 h-100 animate__animated animate__fadeIn">
@@ -169,11 +199,12 @@ export const MapaPredicciones = () => {
                             />
                             <RecenterMap coords={selectedCoords} />
 
-                            {puntosFiltrados.map((punto) => (
+                            {puntosFiltrados.filter(p => p.tiene_ubicacion).map((punto) => (
                                 <Marker
                                     key={punto.log_id}
                                     position={[punto.latitud!, punto.longitud!]}
                                     opacity={selectedId === punto.log_id ? 1 : 0.8}
+                                    ref={(r) => { if (r) markerRefs.current[punto.log_id] = r; }}
                                 >
                                     <Popup minWidth={200}>
                                         <div className="text-center">
@@ -183,12 +214,12 @@ export const MapaPredicciones = () => {
                                                     alt="Ave"
                                                     className="rounded-3 mb-2 shadow-sm"
                                                     style={{ width: '100%', height: '120px', objectFit: 'cover' }}
+                                                    referrerPolicy="no-referrer"
                                                     onError={(e) => e.currentTarget.style.display = 'none'}
                                                 />
                                             )}
                                             <h6 className="fw-bold text-success mb-0 text-capitalize">{punto.nombre_comun}</h6>
 
-                                            {/* AQUÍ MOSTRAMOS EL USUARIO */}
                                             <div className="badge bg-primary bg-opacity-10 text-primary mt-2 mb-1 px-3 py-2 rounded-pill">
                                                 <i className="bi bi-person-fill me-1"></i>
                                                 {punto.usuario}
@@ -215,7 +246,7 @@ export const MapaPredicciones = () => {
                             <h6 className="mb-0 fw-bold text-dark">
                                 <i className="bi bi-globe-americas me-2"></i>Avistamientos
                             </h6>
-                            <span className="badge bg-secondary rounded-pill">{puntosFiltrados.length}</span>
+                            <span className="badge bg-secondary rounded-pill">{puntosFiltrados.length} total</span>
                         </div>
                         {/* BUSCADOR INTEGRADO EN LA LISTA */}
                         <div className="input-group input-group-sm mt-3">
@@ -227,7 +258,7 @@ export const MapaPredicciones = () => {
                                 value={busqueda}
                                 onChange={(e) => {
                                     setBusqueda(e.target.value);
-                                    setLimiteVisible(20);
+                                    setPaginaActual(1);
                                 }}
                                 style={{ boxShadow: 'none' }}
                             />
@@ -251,6 +282,7 @@ export const MapaPredicciones = () => {
                                                         className="rounded-circle border border-2 shadow-sm"
                                                         style={{ width: '60px', height: '60px', objectFit: 'cover' }}
                                                         alt="ave"
+                                                        referrerPolicy="no-referrer"
                                                     />
                                                 ) : (
                                                     <div className="rounded-circle bg-light d-flex align-items-center justify-content-center border" style={{ width: '60px', height: '60px' }}>
@@ -282,13 +314,59 @@ export const MapaPredicciones = () => {
                                 </div>
                             )}
 
-                            {puntosVisibles.length < puntosFiltrados.length && (
-                                <div className="p-2 text-center">
+                            {totalPaginas > 1 && (
+                                <div className="p-3 d-flex justify-content-center align-items-center gap-1 border-top bg-white sticky-bottom">
                                     <button
-                                        className="btn btn-sm btn-outline-success rounded-pill px-4"
-                                        onClick={cargarMas}
+                                        className="btn btn-sm btn-light border fw-bold text-muted"
+                                        onClick={() => setPaginaActual(1)}
+                                        disabled={paginaActual === 1}
+                                        style={{ width: '30px', height: '30px', padding: 0 }}
                                     >
-                                        Cargar más...
+                                        &laquo;
+                                    </button>
+
+                                    <button
+                                        className="btn btn-sm btn-light border fw-bold text-muted"
+                                        onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
+                                        disabled={paginaActual === 1}
+                                        style={{ width: '30px', height: '30px', padding: 0 }}
+                                    >
+                                        &lt;
+                                    </button>
+
+                                    <div className="d-flex mx-1">
+                                        {renderPaginas().map((p, i) => (
+                                            p === "..." ? (
+                                                <span key={i} className="text-muted mx-1 d-flex align-items-center">...</span>
+                                            ) : (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setPaginaActual(p as number)}
+                                                    className={`btn btn-sm rounded-circle fw-bold mx-1 ${paginaActual === p ? 'btn-success text-white' : 'btn-light border text-muted'}`}
+                                                    style={{ width: '30px', height: '30px', padding: 0 }}
+                                                >
+                                                    {p}
+                                                </button>
+                                            )
+                                        ))}
+                                    </div>
+
+                                    <button
+                                        className="btn btn-sm btn-light border fw-bold text-muted"
+                                        onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+                                        disabled={paginaActual === totalPaginas}
+                                        style={{ width: '30px', height: '30px', padding: 0 }}
+                                    >
+                                        &gt;
+                                    </button>
+
+                                    <button
+                                        className="btn btn-sm btn-light border fw-bold text-muted"
+                                        onClick={() => setPaginaActual(totalPaginas)}
+                                        disabled={paginaActual === totalPaginas}
+                                        style={{ width: '30px', height: '30px', padding: 0 }}
+                                    >
+                                        &raquo;
                                     </button>
                                 </div>
                             )}

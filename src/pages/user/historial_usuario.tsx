@@ -13,20 +13,17 @@ export const Historial = () => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
 
+  // --- PAGINACIÓN Y ESTADOS ---
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalRegistros, setTotalRegistros] = useState(0);
+  const registrosPorPagina = 10;
+
   // --- CARGA DE DATOS ---
+  // Cargar lista de aves solo la primera vez
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchAves = async () => {
       try {
-        setLoading(true);
-
-        // 1. LLAMAMOS A LAS APIS NECESARIAS
-        // Solo necesitamos el historial del usuario y las fotos de referencia
-        const [resHistorial, resAves] = await Promise.all([
-          axiosClient.get("/inferencia/historial"),
-          axiosClient.get("/inferencia/listar_aves")
-        ]);
-
-        // 2. PROCESAR MAPA DE FOTOS (Para mostrar la foto bonita del ave y el audio)
+        const resAves = await axiosClient.get("/inferencia/listar_aves");
         const mapaFotos: Record<string, { url: string; audio_url?: string }> = {};
         if (Array.isArray(resAves.data)) {
           resAves.data.forEach((ave: any) => {
@@ -37,24 +34,37 @@ export const Historial = () => {
           });
         }
         setImagenesMap(mapaFotos);
+      } catch (error) {
+        console.error("Error cargando aves:", error);
+      }
+    };
+    fetchAves();
+  }, []);
 
-        // 3. PROCESAR HISTORIAL
-        // Aseguramos que sea un array, dependiendo de cómo responda tu API
-        let dataHist = Array.isArray(resHistorial.data) ? resHistorial.data : resHistorial.data.historial || [];
+  // Cargar historial con paginación desde el servidor
+  useEffect(() => {
+    const fetchHistorial = async () => {
+      try {
+        setLoading(true);
+        const resHistorial = await axiosClient.get(`/inferencia/historial?page=${paginaActual}&limit=${registrosPorPagina}`);
 
-        // FILTRO VISUAL: Ocultamos "Desconocido"
-        dataHist = dataHist.filter((item: any) => item.prediccion !== "Desconocido");
-
-        setRegistros(dataHist);
+        if (resHistorial.data && resHistorial.data.total !== undefined) {
+          setRegistros(resHistorial.data.historial || []);
+          setTotalRegistros(resHistorial.data.total);
+        } else {
+          let dataHist = Array.isArray(resHistorial.data) ? resHistorial.data : resHistorial.data.historial || [];
+          setRegistros(dataHist);
+          setTotalRegistros(dataHist.length);
+        }
 
       } catch (error) {
-        console.error("Error cargando historial:", error);
+        console.error("Error cargando historial paginado:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
+    fetchHistorial();
+  }, [paginaActual]);
 
   // --- HELPERS ---
   const formatearNombre = (nombre: string) => nombre ? nombre.replace(/_/g, " ") : "Desconocido";
@@ -88,14 +98,10 @@ export const Historial = () => {
     especieUsuarioGuardada: selectedItem.especie_usuario
   } : null;
 
-  // --- PAGINACIÓN ---
-  const [paginaActual, setPaginaActual] = useState(1);
-  const registrosPorPagina = 5;
-
-  const totalPaginas = Math.ceil(registros.length / registrosPorPagina);
-  const indiceUltimo = paginaActual * registrosPorPagina;
-  const indicePrimero = indiceUltimo - registrosPorPagina;
-  const registrosPaginados = registros.slice(indicePrimero, indiceUltimo);
+  // --- CÁLCULO DE PAGINACIÓN ---
+  // Ahora la paginación es del lado del servidor, ya no recortamos el array
+  const totalPaginas = Math.ceil(totalRegistros / registrosPorPagina);
+  const registrosPaginados = registros;
 
   // Generar números de página a mostrar (ej: 1 2 3 ... 6)
   const renderPaginas = () => {
@@ -156,6 +162,7 @@ export const Historial = () => {
                             className="rounded-circle border border-2 border-white shadow-sm"
                             style={{ width: '60px', height: '60px', objectFit: 'cover', cursor: 'pointer' }}
                             onClick={() => abrirImagePreview(imagenUrl)}
+                            referrerPolicy="no-referrer"
                           />
                         ) : (
                           <div className="bg-light rounded-circle p-3 d-flex justify-content-center align-items-center border" style={{ width: '60px', height: '60px' }}>
@@ -293,7 +300,7 @@ export const Historial = () => {
         >
           <div className="position-relative animate__animated animate__zoomIn" style={{ maxWidth: '90vw', maxHeight: '90vh' }} onClick={(e) => e.stopPropagation()}>
             <button className="btn btn-close btn-close-white position-absolute" onClick={cerrarImagePreview} style={{ top: '-40px', right: '-40px', zIndex: 2010, fontSize: '1.5rem' }}></button>
-            <img src={selectedImagePreview} alt="Vista previa" className="img-fluid rounded-3 shadow-lg" style={{ maxHeight: '85vh', maxWidth: '85vw', objectFit: 'contain' }} crossOrigin="anonymous" />
+            <img src={selectedImagePreview} alt="Vista previa" className="img-fluid rounded-3 shadow-lg" style={{ maxHeight: '85vh', maxWidth: '85vw', objectFit: 'contain' }} crossOrigin="anonymous" referrerPolicy="no-referrer" />
           </div>
         </div>
       )}

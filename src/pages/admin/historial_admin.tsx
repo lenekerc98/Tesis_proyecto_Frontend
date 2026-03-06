@@ -15,6 +15,11 @@ export const Historial_admin = () => {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
 
+  // Paginación y Estados DB
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalRegistros, setTotalRegistros] = useState(0);
+  const registrosPorPagina = 10;
+
   // Estados para el Modal
   const [showModal, setShowModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -25,19 +30,12 @@ export const Historial_admin = () => {
     return texto.toLowerCase().replace(/_/g, " ").trim();
   };
 
+  // --- CARGA DE AVES (Solo 1 vez) ---
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchAves = async () => {
       try {
-        setLoading(true);
-
-        const [resHistorial, resAves] = await Promise.all([
-          axiosClient.get("/admin/logs/historial"),
-          axiosClient.get("/inferencia/listar_aves")
-        ]);
-
-        // --- MAPA DE AVES ---
+        const resAves = await axiosClient.get("/inferencia/listar_aves");
         const mapaInfo: Record<string, InfoAve> = {};
-
         if (Array.isArray(resAves.data)) {
           resAves.data.forEach((ave: any) => {
             const clave = normalizar(ave.nombre_cientifico);
@@ -49,22 +47,37 @@ export const Historial_admin = () => {
           });
         }
         setInfoAvesMap(mapaInfo);
+      } catch (error) {
+        console.error("Error cargando aves:", error);
+      }
+    };
+    fetchAves();
+  }, []);
 
-        let data = Array.isArray(resHistorial.data) ? resHistorial.data : [];
+  // --- CARGA DE HISTORIAL (Paginado servidor) ---
+  useEffect(() => {
+    const fetchHistorial = async () => {
+      try {
+        setLoading(true);
+        const resHistorial = await axiosClient.get(`/admin/logs/historial?page=${paginaActual}&limit=${registrosPorPagina}`);
 
-        // FILTRO VISUAL: Ocultamos "Desconocido"
-        data = data.filter((item: any) => item.prediccion !== "Desconocido");
-
-        setRegistros(data);
+        if (resHistorial.data && resHistorial.data.total !== undefined) {
+          setRegistros(resHistorial.data.historial || []);
+          setTotalRegistros(resHistorial.data.total);
+        } else {
+          let data = Array.isArray(resHistorial.data) ? resHistorial.data : [];
+          setRegistros(data);
+          setTotalRegistros(data.length);
+        }
 
       } catch (error) {
-        console.error("Error cargando datos:", error);
+        console.error("Error cargando historial admin paginado:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
+    fetchHistorial();
+  }, [paginaActual]);
 
   // --- FILTRO DE BÚSQUEDA ---
   const registrosFiltrados = registros.filter(reg => {
@@ -88,14 +101,10 @@ export const Historial_admin = () => {
   const abrirModal = (item: any) => { setSelectedItem(item); setShowModal(true); };
   const cerrarModal = () => { setShowModal(false); setSelectedItem(null); };
 
-  // --- PAGINACIÓN ---
-  const [paginaActual, setPaginaActual] = useState(1);
-  const registrosPorPagina = 10;
-
-  const totalPaginas = Math.ceil(registrosFiltrados.length / registrosPorPagina);
-  const indiceUltimo = paginaActual * registrosPorPagina;
-  const indicePrimero = indiceUltimo - registrosPorPagina;
-  const registrosPaginados = registrosFiltrados.slice(indicePrimero, indiceUltimo);
+  // --- CÁLCULO DE PAGINACIÓN ---
+  // Ahora la paginación global usa el total real (si pasara del front lo limitaría, pero el backend asume todo)
+  const totalPaginas = Math.ceil(totalRegistros / registrosPorPagina) || 1;
+  const registrosPaginados = registrosFiltrados;
 
   const renderPaginas = () => {
     const paginas = [];
