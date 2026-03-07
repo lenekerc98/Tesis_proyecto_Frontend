@@ -124,18 +124,18 @@ export const Historial_admin = () => {
   return (
     <div className="p-4 animate__animated animate__fadeIn">
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <div>
           <h3 className="fw-bold text-dark m-0">Historial Global</h3>
           <p className="text-muted m-0">Registro completo de identificaciones.</p>
         </div>
-        <div className="input-group" style={{ maxWidth: '300px' }}>
+        <div className="input-group w-100" style={{ maxWidth: '300px' }}>
           <span className="input-group-text bg-white border-end-0 rounded-start-pill">
             <i className="bi bi-search text-muted"></i>
           </span>
           <input
             type="text"
-            className="form-control border-start-0 rounded-end-pill"
+            className="form-control border-start-0 rounded-end-pill shadow-none"
             placeholder="Buscar usuario o ave..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
@@ -143,186 +143,154 @@ export const Historial_admin = () => {
         </div>
       </div>
 
-      <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
-            <thead className="bg-light">
-              <tr>
-                <th className="py-3 ps-4">Ave Identificada</th>
-                <th className="py-3">Usuario</th>
-                <th className="py-3">Confianza</th>
-                <th className="py-3">Fecha</th>
-                <th className="py-3 text-end pe-4">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {registrosPaginados.length > 0 ? (
-                registrosPaginados.map((reg) => {
+      <div className="card border-0 shadow-sm rounded-4 p-3 bg-white">
+        {registrosPaginados.length > 0 ? (
+          <div className="d-flex flex-column gap-3">
+            {registrosPaginados.map((reg) => {
+              const clave = normalizar(reg.prediccion);
+              const infoAve = infoAvesMap[clave];
+              const fotoUrl = infoAve?.url;
+              const nombreMostrar = infoAve?.nombreComun || formatearTexto(reg.prediccion);
 
-                  const clave = normalizar(reg.prediccion);
-                  const infoAve = infoAvesMap[clave];
-                  const fotoUrl = infoAve?.url;
-                  const nombreMostrar = infoAve?.nombreComun || formatearTexto(reg.prediccion);
+              return (
+                <div key={reg.log_id} className="card border-0 shadow-sm rounded-4 p-2 bg-white history-card border-start border-success border-4">
+                  <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
 
-                  return (
-                    <tr key={reg.log_id}>
-                      <td className="ps-4">
-                        <div className="d-flex align-items-center">
-                          {/* FOTO CON SOLUCIÓN AL BLOQUEO */}
-                          <div className="me-3 position-relative" style={{ width: '45px', height: '45px' }}>
-                            {fotoUrl ? (
-                              <img
-                                src={fotoUrl}
-                                alt="Ave"
-                                className="rounded-circle border shadow-sm w-100 h-100 object-fit-cover"
-
-                                /* --- ¡AQUÍ ESTÁ LA MAGIA! --- */
-                                /* Esto evita que el navegador envíe info extra que AWS bloquea */
-                                referrerPolicy="no-referrer"
-                                /* ---------------------------- */
-
-                                onError={(e) => {
-                                  // Si falla la carga, ocultamos la imagen para que se vea el icono de fondo
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <div className="bg-light rounded-circle border d-flex align-items-center justify-content-center w-100 h-100">
-                                <i className="bi bi-bird text-muted"></i>
-                              </div>
-                            )}
+                    {/* PARTE IZQUIERDA: FOTO + NOMBRE + FECHA + USUARIO */}
+                    <div className="d-flex align-items-center">
+                      <div className="me-3 position-relative">
+                        {fotoUrl ? (
+                          <img
+                            src={fotoUrl}
+                            alt="Ave"
+                            className="rounded-circle border border-2 border-white shadow-sm"
+                            style={{ width: '60px', height: '60px', objectFit: 'cover' }}
+                            referrerPolicy="no-referrer"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="bg-light rounded-circle p-3 d-flex justify-content-center align-items-center border" style={{ width: '60px', height: '60px' }}>
+                            <i className="bi bi-bird text-success fs-4"></i>
                           </div>
-
-                          <div>
-                            <div className="fw-bold text-dark text-capitalize">
-                              {nombreMostrar}
-                            </div>
-                            <small className="text-muted fst-italic">
-                              {formatearTexto(reg.prediccion)}
-                            </small>
-                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="fw-bold text-dark text-capitalize fs-5">
+                          {nombreMostrar}
                         </div>
-                      </td>
-
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold" style={{ width: '30px', height: '30px', fontSize: '0.8rem' }}>
-                            {(reg.usuario || "A").charAt(0).toUpperCase()}
-                          </div>
-                          <span className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
-                            {reg.usuario || "Anónimo"}
+                        <div className="text-muted small d-flex flex-wrap align-items-center gap-2 mt-1">
+                          <span className="d-flex align-items-center text-primary fw-bold bg-primary bg-opacity-10 px-2 py-1 rounded">
+                            <i className="bi bi-person-circle me-1"></i> {reg.usuario || "Anónimo"}
                           </span>
+                          <span><i className="bi bi-calendar3 me-1"></i>{new Date(reg.fecha).toLocaleDateString()}</span>
+                          <span className="d-none d-sm-inline">·</span>
+                          <span><i className="bi bi-clock me-1"></i>{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                      </td>
+                      </div>
+                    </div>
 
-                      <td>
-                        <span className={`badge ${reg.confianza > 0.8 ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'} border rounded-pill px-3`}>
-                          {(reg.confianza * 100).toFixed(1)}%
-                        </span>
-                      </td>
+                    {/* PARTE DERECHA: CONFIANZA + BOTÓN */}
+                    <div className="d-flex align-items-center gap-3 ms-auto mt-2 mt-md-0">
+                      <span className="badge bg-success text-success bg-opacity-10 border border-success border-opacity-25 rounded-pill px-3 py-2 fw-bold">
+                        {(reg.confianza * 100).toFixed(1)}% Confianza
+                      </span>
+                      <button className="btn btn-outline-success rounded-pill px-4 fw-bold shadow-sm" onClick={() => abrirModal(reg)}>
+                        Ver Detalle
+                      </button>
+                    </div>
 
-                      <td className="text-muted small">
-                        <div>{new Date(reg.fecha).toLocaleDateString()}</div>
-                        <div className="opacity-75">{new Date(reg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                      </td>
-
-                      <td className="text-end pe-4">
-                        <button className="btn btn-sm btn-outline-primary rounded-pill px-3" onClick={() => abrirModal(reg)}>
-                          Ver
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={5} className="text-center py-5 text-muted">
-                    No se encontraron registros.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* --- PAGINACIÓN (DISEÑO REQUERIDO) --- */}
-        {totalPaginas > 1 && (
-          <div className="card-footer bg-white border-top-0 py-4">
-            <div className="d-flex justify-content-center align-items-center gap-2">
-              <button
-                className="btn btn-link text-decoration-underline fw-bold text-primary p-0"
-                onClick={() => setPaginaActual(1)}
-                disabled={paginaActual === 1}
-              >
-                Primero
-              </button>
-
-              <div className="mx-3 d-flex align-items-center gap-2">
-                {renderPaginas().map((p, i) => (
-                  p === "..." ? (
-                    <span key={i} className="text-muted mx-1">...</span>
-                  ) : (
-                    <button
-                      key={i}
-                      onClick={() => setPaginaActual(p as number)}
-                      className={`d-flex align-items-center justify-content-center rounded-circle border fw-bold`}
-                      style={{
-                        width: '35px',
-                        height: '35px',
-                        fontSize: '0.9rem',
-                        backgroundColor: paginaActual === p ? 'transparent' : 'white',
-                        borderColor: paginaActual === p ? '#dc3545' : '#e9ecef', // Rojo si es activo
-                        color: paginaActual === p ? '#dc3545' : '#6c757d',
-                        transition: 'all 0.2s',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {p}
-                    </button>
-                  )
-                ))}
-              </div>
-
-              <button
-                className="btn btn-link text-dark p-0 text-decoration-none fw-bold"
-                onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
-                disabled={paginaActual === totalPaginas}
-              >
-                &gt;
-              </button>
-
-              <button
-                className="btn btn-link text-decoration-underline fw-bold text-primary p-0 ms-2"
-                onClick={() => setPaginaActual(totalPaginas)}
-                disabled={paginaActual === totalPaginas}
-              >
-                Último
-              </button>
-            </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-5 text-muted">
+            <i className="bi bi-inbox fs-1 d-block mb-3"></i>
+            No se encontraron registros.
           </div>
         )}
       </div>
 
-      {/* MODAL DETALLE */}
-      {selectedItem && (
-        <ModalResultados
-          isOpen={showModal}
-          onClose={cerrarModal}
-          titulo={`Historial de Predicciones - ID: ${selectedItem.log_id}`}
-          prediccionPrincipal={{
-            nombre: infoAvesMap[normalizar(selectedItem.prediccion)]?.nombreComun || formatearTexto(selectedItem.prediccion),
-            nombre_cientifico: selectedItem.prediccion,
-            probabilidad: selectedItem.confianza,
-            url_imagen: infoAvesMap[normalizar(selectedItem.prediccion)]?.url,
-            url_audio: infoAvesMap[normalizar(selectedItem.prediccion)]?.audio_url,
-            url_audio_inferencia: selectedItem.url_grabacion,
-            archivo: selectedItem.url_grabacion ? selectedItem.url_grabacion.split('/').pop() : 'Grabación'
-          }}
-          listaPredicciones={selectedItem.top_5 || []}
-          modoHistorial={true}
-          especieUsuarioGuardada={selectedItem.especie_usuario}
-        />
+      {/* --- PAGINACIÓN (DISEÑO REQUERIDO) --- */}
+      {totalPaginas > 1 && (
+        <div className="card-footer bg-white border-top-0 py-4">
+          <div className="d-flex justify-content-center align-items-center flex-wrap gap-3">
+            <button
+              className="btn btn-link text-decoration-underline fw-bold text-primary p-0"
+              onClick={() => setPaginaActual(1)}
+              disabled={paginaActual === 1}
+            >
+              Primero
+            </button>
+
+            <div className="mx-3 d-flex align-items-center gap-2">
+              {renderPaginas().map((p, i) => (
+                p === "..." ? (
+                  <span key={i} className="text-muted mx-1">...</span>
+                ) : (
+                  <button
+                    key={i}
+                    onClick={() => setPaginaActual(p as number)}
+                    className={`d-flex align-items-center justify-content-center rounded-circle border fw-bold`}
+                    style={{
+                      width: '35px',
+                      height: '35px',
+                      fontSize: '0.9rem',
+                      backgroundColor: paginaActual === p ? 'transparent' : 'white',
+                      borderColor: paginaActual === p ? '#dc3545' : '#e9ecef', // Rojo si es activo
+                      color: paginaActual === p ? '#dc3545' : '#6c757d',
+                      transition: 'all 0.2s',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {p}
+                  </button>
+                )
+              ))}
+            </div>
+
+            <button
+              className="btn btn-link text-dark p-0 text-decoration-none fw-bold"
+              onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+              disabled={paginaActual === totalPaginas}
+            >
+              &gt;
+            </button>
+
+            <button
+              className="btn btn-link text-decoration-underline fw-bold text-primary p-0 ms-2"
+              onClick={() => setPaginaActual(totalPaginas)}
+              disabled={paginaActual === totalPaginas}
+            >
+              Último
+            </button>
+          </div>
+        </div>
       )}
+
+      {/* MODAL DETALLE */}
+      {
+        selectedItem && (
+          <ModalResultados
+            isOpen={showModal}
+            onClose={cerrarModal}
+            titulo={`Historial de Predicciones - ID: ${selectedItem.log_id}`}
+            prediccionPrincipal={{
+              nombre: infoAvesMap[normalizar(selectedItem.prediccion)]?.nombreComun || formatearTexto(selectedItem.prediccion),
+              nombre_cientifico: selectedItem.prediccion,
+              probabilidad: selectedItem.confianza,
+              url_imagen: infoAvesMap[normalizar(selectedItem.prediccion)]?.url,
+              url_audio: infoAvesMap[normalizar(selectedItem.prediccion)]?.audio_url,
+              url_audio_inferencia: selectedItem.url_grabacion,
+              archivo: selectedItem.url_grabacion ? selectedItem.url_grabacion.split('/').pop() : 'Grabación'
+            }}
+            listaPredicciones={selectedItem.top_5 || []}
+            modoHistorial={true}
+            especieUsuarioGuardada={selectedItem.especie_usuario}
+          />
+        )
+      }
 
     </div>
   );

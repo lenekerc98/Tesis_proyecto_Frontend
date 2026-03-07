@@ -228,7 +228,7 @@ export const DashboardAdmin = () => {
             const nombreAve = infoAve ? infoAve.nombre : (data ? data.especie.replace(/_/g, " ") : "Sin datos");
             const imagenAve = (data && data.imagen) ? data.imagen : (infoAve ? infoAve.url : "https://cdn-icons-png.flaticon.com/512/821/821260.png");
             return (
-                <div className="col-md-4">
+                <div className="col-12 col-md-6 col-lg-4">
                     <div className="card border-0 shadow-sm h-100 rounded-4 overflow-hidden position-relative hover-card">
                         <div className={`card-header bg-white border-0 pt-4 pb-0 d-flex align-items-center text-${color}`}>
                             <i className={`bi ${icono} me-2 fs-5`}></i>
@@ -281,7 +281,7 @@ export const DashboardAdmin = () => {
 
                 {/* 2. MÉTRICAS (TARJETAS GRANDES) */}
                 <div className="row g-4 mb-5">
-                    <div className="col-md-3">
+                    <div className="col-12 col-sm-6 col-lg-3">
                         <div className="card border-0 shadow-sm rounded-4 p-3 d-flex flex-row align-items-center bg-white h-100">
                             <div className="bg-primary bg-opacity-10 text-primary p-3 rounded-circle me-3">
                                 <i className="bi bi-person-check-fill fs-3"></i>
@@ -293,7 +293,7 @@ export const DashboardAdmin = () => {
                         </div>
                     </div>
                     {/* TARJETA 2: USUARIOS ONLINE */}
-                    <div className="col-md-3">
+                    <div className="col-12 col-sm-6 col-lg-3">
                         <div className="card border-0 shadow-sm rounded-4 p-3 d-flex flex-row align-items-center bg-white h-100">
                             <div className="bg-success bg-opacity-10 text-success p-3 rounded-circle me-3">
                                 {/* Cambiamos el icono a uno de "señal" o "broadcast" */}
@@ -307,7 +307,7 @@ export const DashboardAdmin = () => {
                         </div>
                     </div>
                     {/* Atajo al Analizador */}
-                    <div className="col-md-6">
+                    <div className="col-12 col-lg-6">
                         <div className="card border-0 shadow-sm rounded-4 p-3 h-100 text-white position-relative overflow-hidden"
                             style={{ background: 'linear-gradient(135deg, #198754, #20c997)' }}>
                             <i className="bi bi-soundwave position-absolute" style={{ fontSize: '8rem', opacity: 0.1, right: '-20px', bottom: '-40px' }}></i>
@@ -338,7 +338,7 @@ export const DashboardAdmin = () => {
                 {/* 4. ACCESOS ADMINISTRATIVOS */}
                 <h5 className="fw-bold text-dark mb-3">Gestión del Sistema</h5>
                 <div className="row g-3">
-                    <div className="col-md-4">
+                    <div className="col-12 col-md-4">
                         <div className="card border-0 shadow-sm p-3 h-100 hover-card cursor-pointer" onClick={() => navegarA("gestion_usuarios")}>
                             <div className="d-flex align-items-center">
                                 <div className="bg-secondary bg-opacity-10 p-2 rounded-3 me-3"><i className="bi bi-gear-fill text-secondary fs-4"></i></div>
@@ -346,7 +346,7 @@ export const DashboardAdmin = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="col-md-4">
+                    <div className="col-12 col-md-4">
                         <div className="card border-0 shadow-sm p-3 h-100 hover-card cursor-pointer" onClick={() => navegarA("admin_errores")}>
                             <div className="d-flex align-items-center">
                                 <div className="bg-danger bg-opacity-10 p-2 rounded-3 me-3"><i className="bi bi-shield-exclamation text-danger fs-4"></i></div>
@@ -354,7 +354,7 @@ export const DashboardAdmin = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="col-md-4">
+                    <div className="col-12 col-md-4">
                         <div className="card border-0 shadow-sm p-3 h-100 hover-card cursor-pointer" onClick={() => navegarA("admin_sesiones")}>
                             <div className="d-flex align-items-center">
                                 <div className="bg-info bg-opacity-10 p-2 rounded-3 me-3"><i className="bi bi-clock-history text-info fs-4"></i></div>

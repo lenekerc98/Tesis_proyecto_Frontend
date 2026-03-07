@@ -5,7 +5,7 @@ import { ModalResultados } from "../../components/ModalResultados";
 export const Historial = () => {
   // --- ESTADOS ---
   const [registros, setRegistros] = useState<any[]>([]);
-  const [imagenesMap, setImagenesMap] = useState<Record<string, { url: string; audio_url?: string }>>({});
+  const [imagenesMap, setImagenesMap] = useState<Record<string, { url: string; audio_url?: string; nombreComun?: string }>>({});
   const [loading, setLoading] = useState(true);
 
   // Estados para Modales
@@ -17,6 +17,11 @@ export const Historial = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalRegistros, setTotalRegistros] = useState(0);
   const registrosPorPagina = 10;
+  // --- NORMALIZACIÓN ROBUSTA ---
+  const normalizar = (texto: string) => {
+    if (!texto) return "";
+    return texto.toLowerCase().replace(/_/g, " ").trim();
+  };
 
   // --- CARGA DE DATOS ---
   // Cargar lista de aves solo la primera vez
@@ -24,12 +29,14 @@ export const Historial = () => {
     const fetchAves = async () => {
       try {
         const resAves = await axiosClient.get("/inferencia/listar_aves");
-        const mapaFotos: Record<string, { url: string; audio_url?: string }> = {};
+        const mapaFotos: Record<string, { url: string; audio_url?: string; nombreComun?: string }> = {};
         if (Array.isArray(resAves.data)) {
           resAves.data.forEach((ave: any) => {
-            mapaFotos[ave.nombre_cientifico] = {
+            const clave = normalizar(ave.nombre_cientifico);
+            mapaFotos[clave] = {
               url: ave.imagen_url,
-              audio_url: ave.audio_url
+              audio_url: ave.audio_url,
+              nombreComun: ave.nombre
             };
           });
         }
@@ -85,11 +92,11 @@ export const Historial = () => {
   // --- ADAPTADOR DE DATOS PARA EL MODAL ---
   const datosParaModal = selectedItem ? {
     principal: {
-      nombre: formatearNombre(selectedItem.prediccion),
+      nombre: imagenesMap[normalizar(selectedItem.prediccion)]?.nombreComun || formatearNombre(selectedItem.prediccion),
       nombre_cientifico: selectedItem.prediccion,
       probabilidad: selectedItem.confianza,
-      url_imagen: imagenesMap[selectedItem.prediccion]?.url,
-      url_audio: imagenesMap[selectedItem.prediccion]?.audio_url,
+      url_imagen: imagenesMap[normalizar(selectedItem.prediccion)]?.url,
+      url_audio: imagenesMap[normalizar(selectedItem.prediccion)]?.audio_url,
       url_audio_inferencia: selectedItem.url_grabacion,
       archivo: selectedItem.url_grabacion ? selectedItem.url_grabacion.split('/').pop() : 'Grabación',
       log_id: selectedItem.log_id
@@ -145,7 +152,9 @@ export const Historial = () => {
         <>
           <div className="d-flex flex-column gap-3">
             {registrosPaginados.map((reg, index) => {
-              const imagenUrl = imagenesMap[reg.prediccion]?.url;
+              const clave = normalizar(reg.prediccion);
+              const imagenUrl = imagenesMap[clave]?.url;
+              const nombreComun = imagenesMap[clave]?.nombreComun || formatearNombre(reg.prediccion);
 
               return (
                 <div key={index} className="card border-0 shadow-sm rounded-4 p-2 bg-white history-card border-start border-success border-4">
@@ -173,10 +182,10 @@ export const Historial = () => {
 
                       {/* Texto */}
                       <div>
-                        <h6 className="fw-bold mb-1 text-dark fst-italic text-capitalize fs-5">
-                          {formatearNombre(reg.prediccion)}
-                        </h6>
-                        <div className="text-muted small d-flex align-items-center gap-2">
+                        <div className="fw-bold text-dark text-capitalize fs-5">
+                          {nombreComun}
+                        </div>
+                        <div className="text-muted small d-flex align-items-center gap-2 mt-1">
                           <span>
                             <i className="bi bi-calendar3 me-1"></i>
                             {new Date(reg.fecha).toLocaleDateString()}
