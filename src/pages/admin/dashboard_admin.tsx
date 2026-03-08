@@ -18,6 +18,8 @@ import { Historial_admin } from "./historial_admin";
 import { GestionUsuarios } from "./gestionusuarios_admin";
 import { Mapas } from "../all/Mapas";
 import { Perfil } from "../all/perfil_usuario";
+import { Resumen } from "../user/resumen_usuario";
+import { Historial } from "../user/historial_usuario";
 
 // --- TIPOS DE DATOS ---
 interface DashboardStats {
@@ -465,6 +467,9 @@ export const DashboardAdmin = () => {
                             {vista === 'admin_historial' && <Historial_admin />}
                             {vista === 'catalogo' && <CatalogoAves />}
                             {vista === 'perfil' && <Perfil />}
+                            {/* Vistas de Usuario disponibles para el Admin */}
+                            {vista === 'resumen' && <Resumen onNavigate={navegarA} />}
+                            {vista === 'historial' && <Historial />}
                         </div>
                     )}
 

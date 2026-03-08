@@ -50,6 +50,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentView
             overflowX: 'hidden', whiteSpace: "nowrap"
         };
 
+    // Estado local para controlar la vista del administrador
+    const [viewMode, setViewMode] = useState<"admin" | "user">("admin");
+
     const getIcon = (view: string) => {
         const map: any = {
             analizador: "mic-fill", resumen: "speedometer2", mapas: "map-fill",
@@ -82,9 +85,46 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentView
 
                 <hr className="text-white opacity-25 my-1 mx-3" />
 
+                {/* BOTÓN DE TOGGLE PARA ADMINS */}
+                {isAdmin && isOpen && (
+                    <div className="px-3 my-2 animate__animated animate__fadeIn">
+                        <button
+                            className="btn btn-sm w-100 fw-bold d-flex align-items-center justify-content-center gap-2"
+                            style={{
+                                backgroundColor: viewMode === 'admin' ? '#2cba93' : '#677059',
+                                color: 'white',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(255,255,255,0.2)'
+                            }}
+                            onClick={() => setViewMode(viewMode === 'admin' ? 'user' : 'admin')}
+                        >
+                            <i className={viewMode === 'admin' ? "bi bi-person-fill" : "bi bi-shield-lock-fill"}></i>
+                            {viewMode === 'admin' ? "Vista Usuario" : "Vista Admin"}
+                        </button>
+                    </div>
+                )}
+                {isAdmin && !isOpen && (
+                    <div className="d-flex justify-content-center my-2">
+                        <button
+                            className="btn btn-sm rounded-circle d-flex align-items-center justify-content-center"
+                            style={{
+                                backgroundColor: viewMode === 'admin' ? '#2cba93' : '#677059',
+                                color: 'white', width: '35px', height: '35px'
+                            }}
+                            onClick={() => {
+                                setViewMode(viewMode === 'admin' ? 'user' : 'admin');
+                                setIsOpen(true);
+                            }}
+                            title={viewMode === 'admin' ? "Cambiar a Usuario" : "Cambiar a Admin"}
+                        >
+                            <i className={viewMode === 'admin' ? "bi bi-person-fill" : "bi bi-shield-lock-fill"}></i>
+                        </button>
+                    </div>
+                )}
+
                 <div className="flex-grow-1 overflow-auto px-2 py-3">
                     <ul className="nav nav-pills flex-column mb-auto gap-2">
-                        {isAdmin && (
+                        {(isAdmin && viewMode === 'admin') && (
                             <>
                                 {isOpen && <li className="px-3 mt-2 mb-1 text-uppercase text-white-50 fw-bold" style={{ fontSize: '0.75rem' }}>Admin</li>}
                                 {["admin_dashboard", "analizador", "gestion_usuarios", "mapas", "admin_sesiones", "admin_errores", "admin_historial", "catalogo"].map((view) => (
@@ -92,7 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentView
                                 ))}
                             </>
                         )}
-                        {!isAdmin && (
+                        {(!isAdmin || (isAdmin && viewMode === 'user')) && (
                             <>
                                 {isOpen && <li className="px-3 mt-2 mb-1 text-uppercase text-white-50 fw-bold" style={{ fontSize: '0.75rem' }}>Investigación</li>}
                                 {["analizador", "resumen", "mapas", "catalogo", "historial"].map((view) => (
