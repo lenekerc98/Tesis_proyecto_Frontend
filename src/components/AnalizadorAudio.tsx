@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import aveIcon from "../assets/ave.png";
+import aveIcon from "../assets/ave_white.png";
 import Swal from 'sweetalert2';
 import "./../App.css";
 
