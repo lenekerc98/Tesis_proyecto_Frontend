@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axiosClient from "../../api/axiosClient";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import Swal from 'sweetalert2';
@@ -107,10 +107,10 @@ export const DashboardAdmin = () => {
 
     // --- HANDLERS GENERALES ---
     const toggleSidebar = () => setActive(!active);
-    const navegarA = (v: string) => {
+    const navegarA = useCallback((v: string) => {
         setVista(v);
         if (window.innerWidth < 768) setActive(false);
-    };
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -206,7 +206,7 @@ export const DashboardAdmin = () => {
     // =========================================================================
     // VISTA: RESUMEN (EL DASHBOARD REAL CON TARJETAS)
     // =========================================================================
-    const VistaResumen = () => {
+    const VistaResumen = useCallback(() => {
         const [stats, setStats] = useState<DashboardStats | null>(null);
         const [loadingStats, setLoadingStats] = useState(true);
 
@@ -367,10 +367,10 @@ export const DashboardAdmin = () => {
                 </div>
             </div>
         );
-    };
+    }, [infoAvesMap, navegarA]);
 
     // --- OTRAS VISTAS (TABLAS SIMPLES) ---
-    const VistaSesiones = () => {
+    const VistaSesiones = useCallback(() => {
         const [sesiones, setSesiones] = useState<Sesion[]>([]);
         useEffect(() => { axiosClient.get("/admin/logs/Listar_sesiones").then(res => setSesiones(res.data)); }, []);
         return (
@@ -394,9 +394,9 @@ export const DashboardAdmin = () => {
                 </div>
             </div>
         );
-    };
+    }, []);
 
-    const VistaErrores = () => {
+    const VistaErrores = useCallback(() => {
         const [logs, setLogs] = useState<LogError[]>([]);
         useEffect(() => { axiosClient.get("/admin/logs/errores?limite=50").then(res => setLogs(res.data)); }, []);
         return (
@@ -420,7 +420,7 @@ export const DashboardAdmin = () => {
                 </div>
             </div>
         );
-    }
+    }, []);
 
     // --- ESTRUCTURA PRINCIPAL ---
     return (
