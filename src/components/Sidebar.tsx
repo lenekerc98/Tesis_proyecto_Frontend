@@ -74,8 +74,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentView
             <nav className="d-flex flex-column flex-shrink-0 text-white" style={sidebarStyle}>
 
                 <div className={`d-flex align-items-center p-3 ${isOpen ? "justify-content-between" : "justify-content-center"}`} style={{ minHeight: '70px' }}>
-                    <div className="d-flex align-items-center gap-2 overflow-hidden fade-in" style={{ opacity: isOpen ? 1 : 0, width: isOpen ? 'auto' : 0, transition: 'opacity 0.2s' }}>
-                        <img src={aveIcon} alt="Logo" style={{ height: '35px' }} />
+                    <div
+                        className="d-flex align-items-center gap-2 overflow-hidden fade-in"
+                        style={{ opacity: isOpen ? 1 : 0, width: isOpen ? 'auto' : 0, transition: 'opacity 0.2s', cursor: 'pointer' }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (isAdmin && viewMode === 'admin') {
+                                handleNavigation('admin_dashboard');
+                            } else {
+                                handleNavigation('analizador');
+                            }
+                        }}
+                    >
+                        <div style={{
+                            width: "35px",
+                            height: "35px",
+                            backgroundColor: "#FFFFFF",
+                            maskImage: `url(${aveIcon})`,
+                            maskSize: "contain",
+                            maskRepeat: "no-repeat",
+                            maskPosition: "center",
+                            WebkitMaskImage: `url(${aveIcon})`,
+                            WebkitMaskSize: "contain",
+                            WebkitMaskRepeat: "no-repeat",
+                            WebkitMaskPosition: "center"
+                        }} />
                         <span className="fs-4 fw-bold">BirdIA</span>
                     </div>
                     <button className="btn btn-link text-white p-0 border-0" onClick={() => setIsOpen(!isOpen)} style={{ fontSize: "1.5rem", minWidth: '40px' }}>
@@ -96,7 +119,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentView
                                 borderRadius: '8px',
                                 border: '1px solid rgba(255,255,255,0.2)'
                             }}
-                            onClick={() => setViewMode(viewMode === 'admin' ? 'user' : 'admin')}
+                            onClick={() => {
+                                const newMode = viewMode === 'admin' ? 'user' : 'admin';
+                                setViewMode(newMode);
+                                handleNavigation(newMode === 'admin' ? 'admin_dashboard' : 'analizador');
+                            }}
                         >
                             <i className={viewMode === 'admin' ? "bi bi-person-fill" : "bi bi-shield-lock-fill"}></i>
                             {viewMode === 'admin' ? "Vista Usuario" : "Vista Admin"}
@@ -112,8 +139,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentView
                                 color: 'white', width: '35px', height: '35px'
                             }}
                             onClick={() => {
-                                setViewMode(viewMode === 'admin' ? 'user' : 'admin');
+                                const newMode = viewMode === 'admin' ? 'user' : 'admin';
+                                setViewMode(newMode);
                                 setIsOpen(true);
+                                handleNavigation(newMode === 'admin' ? 'admin_dashboard' : 'analizador');
                             }}
                             title={viewMode === 'admin' ? "Cambiar a Usuario" : "Cambiar a Admin"}
                         >
