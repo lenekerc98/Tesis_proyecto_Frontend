@@ -12,6 +12,12 @@ export default defineConfig(({ mode }) => {
       basicSsl(),
       VitePWA({
         registerType: "autoUpdate",
+        injectRegister: "auto",
+        workbox: {
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true,
+        },
         // 1. AGREGAMOS "ave.png" AQUÍ para que se guarde en caché offline
         includeAssets: ["ave.png"],
 
@@ -19,7 +25,7 @@ export default defineConfig(({ mode }) => {
           name: "BirdIA - Identificador de Aves",
           short_name: "BirdIA",
           description: "Identificación de aves mediante Inteligencia Artificial y audio",
-          theme_color: "#ffffff",
+          theme_color: "#2cba93",
           background_color: "#ffffff",
           display: "standalone",
           start_url: "/",
@@ -27,20 +33,16 @@ export default defineConfig(({ mode }) => {
           // 2. CONFIGURACIÓN DE ICONOS APUNTANDO A "ave.png"
           icons: [
             {
-              src: "/ave.png",   // Ponemos la barra / al inicio por seguridad
-              sizes: "192x192",  // El navegador tratará de redimensionar tu imagen a 192px
+              src: "/ave.png",
+              sizes: "192x192",
               type: "image/png",
-            },
-            {
-              src: "/ave.png",   // Usamos la misma imagen
-              sizes: "512x512",  // El navegador tratará de redimensionar tu imagen a 512px
-              type: "image/png",
+              purpose: "any"
             },
             {
               src: "/ave.png",
               sizes: "512x512",
               type: "image/png",
-              purpose: "any maskable" // Esto permite que Android recorte la imagen en forma de círculo si es necesario
+              purpose: "any"
             }
           ],
         },
