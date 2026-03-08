@@ -25,8 +25,8 @@ export default defineConfig(({ mode }) => {
           name: "BirdIA - Identificador de Aves",
           short_name: "BirdIA",
           description: "Identificación de aves mediante Inteligencia Artificial y audio",
-          theme_color: "#2cba93",
-          background_color: "#ffffff",
+          theme_color: "#677059",
+          background_color: "#677059",
           display: "standalone",
           start_url: "/",
 
