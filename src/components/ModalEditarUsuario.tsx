@@ -118,6 +118,7 @@ export const ModalEditarUsuario: React.FC<ModalProps> = ({ isOpen, onClose, user
                             className="form-control"
                             defaultValue={user.email}
                             ref={emailRef}
+                            disabled
                         />
                     </div>
 

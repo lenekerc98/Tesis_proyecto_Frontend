@@ -72,8 +72,14 @@ function App() {
         // 3. TIMER DE INACTIVIDAD (10 MINUTOS)
         let timer: ReturnType<typeof setTimeout>;
 
-        const logout = () => {
+        const logout = async () => {
             console.log("Sesión cerrada por inactividad.");
+            try {
+                const token = localStorage.getItem("token");
+                if (token) {
+                    await axiosClient.post("/usuarios/logout");
+                }
+            } catch (error) { }
             localStorage.clear();
             window.location.href = "/login?reason=inactivity";
         };

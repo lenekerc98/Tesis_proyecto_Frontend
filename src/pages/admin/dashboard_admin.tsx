@@ -112,7 +112,12 @@ export const DashboardAdmin = () => {
         if (window.innerWidth < 768) setActive(false);
     }, []);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            await axiosClient.post("/usuarios/logout");
+        } catch (error) {
+            console.error("Error al cerrar sesión en el API", error);
+        }
         localStorage.removeItem("token");
         localStorage.removeItem("role_id");
         localStorage.removeItem("userName");
